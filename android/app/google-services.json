@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "536639021521",
+    "project_id": "monkey-messanger",
+    "storage_bucket": "monkey-messanger.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:536639021521:android:78a034d791badc141ec0f0",
+        "android_client_info": {
+          "package_name": "com.example.monkey_messanger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKEm7akmIqkf9Dc7EWdSyZ2f0mRyhPf-E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
