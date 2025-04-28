@@ -13,6 +13,7 @@ import 'package:monkey_messanger/services/auth_repository.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
 import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/auth_state.dart';
+import 'package:monkey_messanger/services/chat_bloc.dart';
 import 'package:monkey_messanger/screens/login_screen.dart';
 import 'package:monkey_messanger/screens/chat_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,6 +39,9 @@ void main() async {
     prefs: sharedPreferences,
   );
   
+  // Регистрируем наблюдатель для Bloc
+  Bloc.observer = SimpleBlocObserver();
+  
   runApp(
     MyApp(
       authRepository: authRepository,
@@ -62,7 +66,25 @@ class SimpleBlocObserver extends BlocObserver {
   @override
   void onError(BlocBase bloc, Object error, StackTrace stackTrace) {
     AppLogger.error('${bloc.runtimeType} | Error: $error', error, stackTrace);
+    
+    // Добавляем дополнительную обработку специфичных ошибок Firebase
+    if (error.toString().contains('firebase') || error.toString().contains('network')) {
+      AppLogger.warning('Обнаружена ошибка Firebase или сети. Возможно, проблемы с подключением.');
+    }
+    
     super.onError(bloc, error, stackTrace);
+  }
+  
+  @override
+  void onCreate(BlocBase bloc) {
+    AppLogger.info('${bloc.runtimeType} | Created');
+    super.onCreate(bloc);
+  }
+
+  @override
+  void onClose(BlocBase bloc) {
+    AppLogger.info('${bloc.runtimeType} | Closed');
+    super.onClose(bloc);
   }
 }
 
@@ -76,9 +98,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Регистрируем наблюдатель для Bloc
-    Bloc.observer = SimpleBlocObserver();
-    
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<AuthRepository>.value(value: authRepository),
@@ -89,6 +108,9 @@ class MyApp extends StatelessWidget {
             create: (context) => AuthBloc(
               authRepository: authRepository,
             ),
+          ),
+          BlocProvider<ChatBloc>(
+            create: (context) => ChatBloc(),
           ),
         ],
         child: MaterialApp(

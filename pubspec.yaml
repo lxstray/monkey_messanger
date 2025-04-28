@@ -38,7 +38,7 @@ dependencies:
   # Firebase
   firebase_core: ^2.24.2
   firebase_auth: ^4.15.3
-  firebase_storage: ^11.6.7
+  firebase_storage: ^11.5.6
   cloud_firestore: ^4.13.6
   google_sign_in: ^6.1.6
   
@@ -55,11 +55,12 @@ dependencies:
   file_picker: ^6.1.1
   
   # Utilities
-  uuid: ^4.3.3
+  uuid: ^4.2.2
   intl: ^0.19.0
   shared_preferences: ^2.2.2
   encrypt: ^5.0.3
   logger: ^2.0.2+1
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:
