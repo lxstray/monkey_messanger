@@ -75,8 +75,16 @@ class UserEntity extends Equatable {
       email: map['email'] ?? '',
       photoUrl: map['photoUrl'],
       role: map['role'] ?? 'user',
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      lastActive: DateTime.fromMillisecondsSinceEpoch(map['lastActive'] ?? 0),
+      createdAt: map['createdAt'] is int 
+          ? DateTime.fromMillisecondsSinceEpoch(map['createdAt']) 
+          : (map['createdAt'] is DateTime 
+              ? map['createdAt'] 
+              : map['createdAt']?.toDate() ?? DateTime.now()),
+      lastActive: map['lastActive'] is int 
+          ? DateTime.fromMillisecondsSinceEpoch(map['lastActive']) 
+          : (map['lastActive'] is DateTime 
+              ? map['lastActive'] 
+              : map['lastActive']?.toDate() ?? DateTime.now()),
       isOnline: map['isOnline'] ?? false,
     );
   }

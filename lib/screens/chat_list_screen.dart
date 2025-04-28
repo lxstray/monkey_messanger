@@ -6,6 +6,9 @@ import 'package:monkey_messanger/services/auth_state.dart';
 import 'package:monkey_messanger/screens/chat_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:monkey_messanger/services/chat_bloc.dart';
+import 'package:monkey_messanger/screens/create_group_chat_screen.dart';
+import 'package:monkey_messanger/services/chat_repository_impl.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class ChatListScreen extends StatelessWidget {
   const ChatListScreen({super.key});
@@ -35,7 +38,7 @@ class ChatListScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('chats')
-            .where('participants', arrayContains: currentUser?.id)
+            .where('participantIds', arrayContains: currentUser?.id)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -86,8 +89,16 @@ class ChatListScreen extends StatelessWidget {
               final chat = chats[index].data() as Map<String, dynamic>;
               final chatId = chats[index].id;
               final chatName = chat['name'] as String? ?? 'Unnamed Chat';
-              final lastMessage = chat['lastMessage'] as String? ?? 'No messages yet';
-              final lastMessageTime = (chat['lastMessageTime'] as Timestamp?)?.toDate();
+              final lastMessage = chat['lastMessageText'] as String? ?? 'No messages yet';
+              
+              // Handle different timestamp formats (int or Timestamp)
+              DateTime? lastMessageTime;
+              final lastMessageTimeRaw = chat['lastMessageTime'];
+              if (lastMessageTimeRaw is Timestamp) {
+                lastMessageTime = lastMessageTimeRaw.toDate();
+              } else if (lastMessageTimeRaw is int) {
+                lastMessageTime = DateTime.fromMillisecondsSinceEpoch(lastMessageTimeRaw);
+              }
 
               return Card(
                 color: const Color(0xFF2A2A2A),
@@ -160,6 +171,51 @@ class ChatListScreen extends StatelessWidget {
   }
 
   void _showNewChatDialog(BuildContext context, String currentUserId) {
+    final authState = context.read<AuthBloc>().state;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2A2A2A),
+          title: const Text(
+            'Новый чат',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.person, color: Color(0xFF4A90E2)),
+                title: const Text(
+                  'Личный чат',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showPrivateChatDialog(context, currentUserId, authState);
+                },
+              ),
+              const Divider(color: Colors.white24),
+              ListTile(
+                leading: const Icon(Icons.group, color: Color(0xFF4A90E2)),
+                title: const Text(
+                  'Групповой чат',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _navigateToCreateGroupChat(context, authState);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPrivateChatDialog(BuildContext context, String currentUserId, AuthState authState) {
     final TextEditingController emailController = TextEditingController();
 
     showDialog(
@@ -168,7 +224,7 @@ class ChatListScreen extends StatelessWidget {
         return AlertDialog(
           backgroundColor: const Color(0xFF2A2A2A),
           title: const Text(
-            'New Chat',
+            'Новый личный чат',
             style: TextStyle(color: Colors.white),
           ),
           content: Column(
@@ -178,8 +234,8 @@ class ChatListScreen extends StatelessWidget {
                 controller: emailController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: 'User Email',
-                  hintText: 'Enter user email',
+                  labelText: 'Email пользователя',
+                  hintText: 'Введите email пользователя',
                   labelStyle: const TextStyle(color: Colors.white70),
                   hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                   enabledBorder: const UnderlineInputBorder(
@@ -197,7 +253,7 @@ class ChatListScreen extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
-                'Cancel',
+                'Отмена',
                 style: TextStyle(color: Colors.white70),
               ),
             ),
@@ -213,49 +269,93 @@ class ChatListScreen extends StatelessWidget {
                         .get();
 
                     if (userQuery.docs.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('User not found')),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Пользователь не найден'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                       return;
                     }
 
-                    final otherUser = userQuery.docs.first;
-                    
-                    // Create new chat
-                    final chatRef = await FirebaseFirestore.instance
-                        .collection('chats')
-                        .add({
-                      'name': 'Chat with ${otherUser['name'] ?? email}',
-                      'participants': [currentUserId, otherUser.id],
-                      'createdAt': FieldValue.serverTimestamp(),
-                      'lastMessage': 'Chat created',
-                      'lastMessageTime': FieldValue.serverTimestamp(),
-                    });
+                    final otherUserId = userQuery.docs.first.id;
 
-                    // Add system message
-                    await chatRef.collection('messages').add({
-                      'type': 4, // System message
-                      'text': 'Chat created',
-                      'timestamp': FieldValue.serverTimestamp(),
-                      'senderId': '',
-                    });
+                    if (otherUserId == currentUserId) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Вы не можете создать чат с собой'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                      return;
+                    }
 
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
+                    // Create chat
+                    final chatRepository = ChatRepositoryImpl(
+                      firestore: FirebaseFirestore.instance,
+                      storage: FirebaseStorage.instance,
                     );
+
+                    final chatEntity = await chatRepository.createPrivateChat(
+                      currentUserId,
+                      otherUserId,
+                    );
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      
+                      // Navigate to chat screen
+                      context.read<ChatBloc>().add(LoadMessagesEvent(chatEntity.id));
+                      
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(
+                            chatId: chatEntity.id,
+                            chatName: chatEntity.name,
+                            currentUser: authState.user!,
+                          ),
+                        ),
+                      ).then((_) {
+                        // Reset chat state when returning from chat
+                        context.read<ChatBloc>().add(ResetChatEvent());
+                      });
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Ошибка: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
                 }
               },
               child: const Text(
-                'Create',
+                'Создать',
                 style: TextStyle(color: Color(0xFF4A90E2)),
               ),
             ),
           ],
         );
       },
+    );
+  }
+
+  void _navigateToCreateGroupChat(BuildContext context, AuthState authState) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateGroupChatScreen(
+          currentUser: authState.user!,
+        ),
+      ),
     );
   }
 } 

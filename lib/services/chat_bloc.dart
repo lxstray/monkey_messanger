@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/message_entity.dart';
+import '../models/chat_entity.dart';
 import '../utils/app_logger.dart';
 
 // Events
@@ -44,7 +45,9 @@ class ChatLoading extends ChatState {}
 
 class ChatLoaded extends ChatState {
   final List<MessageEntity> messages;
-  ChatLoaded(this.messages);
+  final ChatEntity? chat;
+  
+  ChatLoaded(this.messages, {this.chat});
 }
 
 class ChatError extends ChatState {
@@ -113,6 +116,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         await _initEncryption();
       }
       
+      // Сначала загружаем информацию о чате
+      final chatDoc = await _firestore.collection('chats').doc(event.chatId).get();
+      ChatEntity? chat;
+      
+      if (chatDoc.exists) {
+        final chatData = chatDoc.data()!;
+        chat = ChatEntity.fromMap({...chatData, 'id': chatDoc.id});
+      }
+      
       // Используем StreamController для преобразования потока Firestore в поток, 
       // с которым можно безопасно работать в BLoC
       final controller = StreamController<List<MessageEntity>>();
@@ -176,7 +188,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // Подписываемся на поток из StreamController
       await emit.forEach<List<MessageEntity>>(
         controller.stream,
-        onData: (messages) => ChatLoaded(messages),
+        onData: (messages) => ChatLoaded(messages, chat: chat),
         onError: (error, _) => ChatError('Error loading messages: ${error.toString().split('\n').first}'),
       );
       

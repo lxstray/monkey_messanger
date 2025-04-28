@@ -22,6 +22,9 @@ import 'package:media_scanner/media_scanner.dart';
 import 'package:external_path/external_path.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:monkey_messanger/models/chat_entity.dart';
+import 'package:monkey_messanger/screens/group_chat_settings_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -321,10 +324,15 @@ class _ChatScreenState extends State<ChatScreen> {
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: () {
-              // TODO: Implement chat settings menu
+          BlocBuilder<ChatBloc, ChatState>(
+            builder: (context, state) {
+              if (state is ChatLoaded && state.chat != null && state.chat!.isGroup) {
+                return IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.white),
+                  onPressed: () => _openGroupSettings(context, state.chat!),
+                );
+              }
+              return const SizedBox.shrink();
             },
           ),
         ],
@@ -393,6 +401,19 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _openGroupSettings(BuildContext context, ChatEntity chatEntity) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GroupChatSettingsScreen(
+          chatId: widget.chatId,
+          currentUser: widget.currentUser,
+          chatEntity: chatEntity,
+        ),
       ),
     );
   }
