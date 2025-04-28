@@ -35,12 +35,12 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   
-  # Firebase
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  firebase_storage: ^11.5.6
-  cloud_firestore: ^4.13.6
-  google_sign_in: ^6.1.6
+  # Firebase - Updated to latest stable
+  firebase_core: ^3.13.0 
+  firebase_auth: ^5.5.3 
+  firebase_storage: ^12.4.5 
+  cloud_firestore: ^5.6.7 
+  google_sign_in: ^6.2.2 
   
   # Supabase
   supabase_flutter: ^2.3.4
@@ -69,7 +69,7 @@ dependencies:
   path_provider: ^2.1.5
   permission_handler: ^11.3.0
   share_plus: ^7.2.2
-  device_info_plus: ^11.3.0
+  device_info_plus: ^11.3.0 # Downgraded as suggested by pub get
   media_scanner: ^2.2.0
   external_path: ^2.2.0
   record: ^6.0.0
