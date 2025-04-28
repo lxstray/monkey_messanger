@@ -34,6 +34,20 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    
+    <!-- Разрешения для работы с файловой системой -->
+    <!-- Для Android 12 (API 32) и ниже -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    
+    <!-- Для Android 13 (API 33) и выше -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    
+    <!-- Для всех версий Android -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.

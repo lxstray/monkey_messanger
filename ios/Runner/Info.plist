@@ -45,5 +45,15 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Разрешения для работы с галереей и файлами -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Приложению требуется доступ к фотографиям для отправки изображений в чат и сохранения полученных файлов</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Приложению требуется доступ для сохранения полученных медиафайлов в галерею</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Приложению требуется доступ для сохранения полученных файлов на устройство</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Приложению требуется доступ для сохранения полученных файлов в папку Загрузки</string>
 </dict>
 </plist>
