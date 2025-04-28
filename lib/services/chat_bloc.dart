@@ -21,11 +21,13 @@ class SendMessageEvent extends ChatEvent {
   final String content;
   final MessageType type;
   final String senderId;
+  final int? voiceDurationSeconds;
   SendMessageEvent({
     required this.chatId,
     required this.content,
     required this.type,
     required this.senderId,
+    this.voiceDurationSeconds,
   });
 }
 
@@ -213,7 +215,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
           break;
         case MessageType.voice:
           messageData['mediaUrl'] = event.content;
-          messageData['voiceDurationSeconds'] = 0;
+          if (event.voiceDurationSeconds != null) {
+            messageData['voiceDurationSeconds'] = event.voiceDurationSeconds as int;
+          }
           break;
         case MessageType.system:
           messageData['text'] = event.content;

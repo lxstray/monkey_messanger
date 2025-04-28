@@ -124,10 +124,10 @@ class StorageService {
     }
   }
 
-  // Загрузка голосового сообщения в Supabase Storage
-  Future<String> uploadVoice(File file, String chatId) async {
+  // Загрузка голосового сообщения
+  Future<String> uploadVoiceMessage(File file, String chatId) async {
     try {
-      final fileName = '${_uuid.v4()}.m4a';
+      final fileName = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
       final filePath = 'chats/$chatId/voice/$fileName';
       
       // Загружаем файл
@@ -145,11 +145,10 @@ class StorageService {
         throw Exception('Получен пустой URL после загрузки голосового сообщения');
       }
       
-      AppLogger.info('Voice message uploaded successfully: $filePath, URL: $voiceUrl');
+      AppLogger.info('Voice message uploaded successfully: $filePath');
       return voiceUrl;
     } catch (e) {
       AppLogger.error('Failed to upload voice message', e, StackTrace.current);
-      // Возвращаем пустую строку вместо исключения, чтобы избежать краша
       return '';
     }
   }

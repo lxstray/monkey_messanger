@@ -66,12 +66,14 @@ dependencies:
   logger: ^2.0.2+1
   path: ^1.8.3
   http: ^1.2.1
-  path_provider: ^2.1.2
+  path_provider: ^2.1.5
   permission_handler: ^11.3.0
   share_plus: ^7.2.2
   device_info_plus: ^11.3.0
   media_scanner: ^2.2.0
   external_path: ^2.2.0
+  record: ^6.0.0
+  audioplayers: ^6.4.0
 
 dev_dependencies:
   flutter_test:

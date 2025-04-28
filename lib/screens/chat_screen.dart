@@ -20,6 +20,8 @@ import 'package:path/path.dart' as path;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:external_path/external_path.dart';
+import 'package:record/record.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -44,10 +46,22 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isAttachmentMenuOpen = false;
   bool _isUploading = false;
   bool _isDownloading = false;
-
+  
+  // Переменные для работы с голосовыми сообщениями
+  final _audioRecorder = AudioRecorder();
+  final _audioPlayer = AudioPlayer();
+  bool _isRecording = false;
+  bool _isRecordingInitialized = false;
+  String? _recordingPath;
+  int _recordingDuration = 0;
+  DateTime? _recordingStartTime;
+  bool _isPlaying = false;
+  String? _currentlyPlayingId;
+  
   @override
   void initState() {
     super.initState();
+    _initAudioRecorder();
     // Теперь загрузка сообщений происходит в chat_list_screen
     // перед переходом на этот экран, поэтому комментируем этот код
     // Future.delayed(const Duration(milliseconds: 100), () {
@@ -55,6 +69,245 @@ class _ChatScreenState extends State<ChatScreen> {
     //     context.read<ChatBloc>().add(LoadMessagesEvent(widget.chatId));
     //   }
     // });
+  }
+  
+  // Инициализация рекордера
+  Future<void> _initAudioRecorder() async {
+    try {
+      final status = await Permission.microphone.request();
+      _isRecordingInitialized = status.isGranted;
+      if (!_isRecordingInitialized) {
+        AppLogger.error('Microphone permission denied', null, StackTrace.current);
+      }
+    } catch (e) {
+      _isRecordingInitialized = false;
+      AppLogger.error('Failed to initialize audio recorder', e, StackTrace.current);
+    }
+  }
+  
+  // Начать запись голосового сообщения
+  Future<void> _startRecording() async {
+    if (!_isRecordingInitialized) {
+      await _initAudioRecorder();
+      if (!_isRecordingInitialized) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Требуется доступ к микрофону для записи голосовых сообщений'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+    
+    try {
+      // Создаем временную директорию для записи
+      final Directory tempDir = await getTemporaryDirectory();
+      final String filePath = '${tempDir.path}/voice_message_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      
+      // Проверяем, есть ли нужные разрешения
+      if (!await Permission.microphone.isGranted) {
+        final status = await Permission.microphone.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Требуется доступ к микрофону для записи голосовых сообщений'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
+      
+      // Проверяем, доступен ли рекордер
+      if (!(await _audioRecorder.hasPermission())) {
+        AppLogger.error('Recording permission not granted', null, StackTrace.current);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Требуется доступ к микрофону для записи голосовых сообщений'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
+      // Начинаем запись
+      await _audioRecorder.start(
+        RecordConfig(),
+        path: filePath,
+      );
+      
+      _recordingPath = filePath;
+      _recordingStartTime = DateTime.now();
+      _recordingDuration = 0;
+      
+      // Запускаем таймер для обновления длительности записи
+      setState(() {
+        _isRecording = true;
+      });
+      
+      // Запускаем таймер обновления длительности записи
+      _startRecordingTimer();
+      
+    } catch (e) {
+      AppLogger.error('Failed to start recording', e, StackTrace.current);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка при записи голосового сообщения: ${e.toString().split('\n').first}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  // Таймер для обновления длительности записи
+  void _startRecordingTimer() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (_isRecording && mounted) {
+        setState(() {
+          _recordingDuration = DateTime.now().difference(_recordingStartTime!).inSeconds;
+        });
+        _startRecordingTimer();
+      }
+    });
+  }
+  
+  // Остановить запись и отправить голосовое сообщение
+  Future<void> _stopRecordingAndSend() async {
+    if (!_isRecording) return;
+    
+    try {
+      // Останавливаем запись
+      final result = await _audioRecorder.stop();
+      
+      setState(() {
+        _isRecording = false;
+        _isUploading = true;
+      });
+      
+      if (result == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Не удалось получить запись'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
+      // Проверяем длительность записи
+      if (_recordingDuration < 1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Запись слишком короткая'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      
+      final file = File(result);
+      if (!await file.exists()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Файл записи не найден'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
+      // Загружаем файл в хранилище
+      final url = await _storageService.uploadVoiceMessage(file, widget.chatId);
+      
+      if (url.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Не удалось загрузить голосовое сообщение'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
+      // Отправляем сообщение
+      context.read<ChatBloc>().add(SendMessageEvent(
+        chatId: widget.chatId,
+        content: url,
+        type: MessageType.voice,
+        senderId: widget.currentUser.id,
+        voiceDurationSeconds: _recordingDuration,
+      ));
+      
+      AppLogger.info('Voice message sent successfully');
+      
+    } catch (e) {
+      AppLogger.error('Failed to send voice message', e, StackTrace.current);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка при отправке голосового сообщения: ${e.toString().split('\n').first}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+  
+  // Воспроизведение голосового сообщения
+  Future<void> _playVoiceMessage(String url, String messageId) async {
+    if (_isPlaying && _currentlyPlayingId == messageId) {
+      // Если уже воспроизводится это сообщение, останавливаем
+      await _audioPlayer.stop();
+      setState(() {
+        _isPlaying = false;
+        _currentlyPlayingId = null;
+      });
+      return;
+    }
+    
+    try {
+      // Если воспроизводится другое сообщение, останавливаем его
+      if (_isPlaying) {
+        await _audioPlayer.stop();
+      }
+      
+      // Воспроизводим новое сообщение
+      await _audioPlayer.play(UrlSource(url));
+      
+      setState(() {
+        _isPlaying = true;
+        _currentlyPlayingId = messageId;
+      });
+      
+      // Обработчик завершения воспроизведения
+      _audioPlayer.onPlayerComplete.listen((event) {
+        if (mounted) {
+          setState(() {
+            _isPlaying = false;
+            _currentlyPlayingId = null;
+          });
+        }
+      });
+      
+    } catch (e) {
+      AppLogger.error('Failed to play voice message', e, StackTrace.current);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка при воспроизведении: ${e.toString().split('\n').first}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  // Форматирование времени записи
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -344,18 +597,52 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       case MessageType.voice:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.mic, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(
-              message.voiceDurationSeconds != null
-                  ? '${message.voiceDurationSeconds}s'
-                  : 'Voice message',
-              style: const TextStyle(color: Colors.white),
+        return GestureDetector(
+          onTap: () {
+            if (message.mediaUrl != null) {
+              _playVoiceMessage(message.mediaUrl!, message.id);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _isPlaying && _currentlyPlayingId == message.id 
+                    ? Icons.pause_circle_filled 
+                    : Icons.play_circle_filled,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (message.voiceDurationSeconds != null)
+                      Text(
+                        _formatDuration(message.voiceDurationSeconds!),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    Text(
+                      'Голосовое сообщение',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         );
       case MessageType.system:
         return Text(
@@ -384,13 +671,6 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: Icons.attach_file,
             label: 'File',
             onTap: _pickFile,
-          ),
-          _buildAttachmentButton(
-            icon: Icons.mic,
-            label: 'Voice',
-            onTap: () {
-              // TODO: Implement voice message recording
-            },
           ),
         ],
       ),
@@ -446,10 +726,28 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFF4A90E2)),
-            onPressed: _sendTextMessage,
-          ),
+          if (_messageController.text.trim().isEmpty)
+            GestureDetector(
+              onLongPressStart: (_) => _startRecording(),
+              onLongPressEnd: (_) => _stopRecordingAndSend(),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _isRecording ? Colors.red : const Color(0xFF4A90E2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isRecording ? Icons.mic : Icons.mic_none,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.send, color: Color(0xFF4A90E2)),
+              onPressed: _sendTextMessage,
+            ),
         ],
       ),
     );
@@ -975,6 +1273,8 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _audioRecorder.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 } 
