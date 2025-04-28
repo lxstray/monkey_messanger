@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:monkey_messanger/utils/app_constants.dart';
@@ -19,11 +21,26 @@ import 'package:monkey_messanger/screens/login_screen.dart';
 import 'package:monkey_messanger/screens/chat_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Отключаем отладочные режимы для повышения производительности
+  debugPaintSizeEnabled = false;
+  debugPrintMarkNeedsLayoutStacks = false;
+  debugPrintMarkNeedsPaintStacks = false;
+  
+  // Устанавливаем предпочтительную ориентацию экрана
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  
+  // Оптимизируем использование памяти
+  ImageCache().maximumSizeBytes = 1024 * 1024 * 50; // 50MB для кэша
   
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -34,7 +51,7 @@ void main() async {
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
-    debug: true, // Set to false in production
+    debug: false, // Отключаем debug режим в production
   );
   
   // Initialize SharedPreferences

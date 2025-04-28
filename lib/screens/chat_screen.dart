@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:monkey_messanger/services/storage_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
+import 'package:monkey_messanger/utils/image_helper.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -209,6 +210,13 @@ class _ChatScreenState extends State<ChatScreen> {
           style: const TextStyle(color: Colors.white),
         );
       case MessageType.image:
+        final String imageUrl = message.mediaUrl ?? '';
+        if (imageUrl.isEmpty) {
+          return _buildImageErrorWidget('Invalid image URL');
+        }
+        
+        ImageHelper().preloadImage(imageUrl);
+        
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -220,43 +228,43 @@ class _ChatScreenState extends State<ChatScreen> {
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: message.mediaUrl ?? '',
-                placeholder: (context, url) => Container(
-                  height: 150,
+            Container(
+              constraints: const BoxConstraints(
+                maxWidth: 200,
+                maxHeight: 200,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  imageUrl,
                   width: 200,
-                  padding: const EdgeInsets.all(8),
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF4A90E2),
-                    ),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
                   height: 150,
-                  width: 200,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[800],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image, color: Colors.white70, size: 40),
-                      SizedBox(height: 8),
-                      Text(
-                        'Failed to load image',
-                        style: TextStyle(color: Colors.white70),
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: 200,
+                      height: 150,
+                      color: Colors.grey[900],
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: const Color(0xFF4A90E2),
+                        ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    AppLogger.error('Error loading image: $imageUrl', error, stackTrace);
+                    return _buildImageErrorWidget('Failed to load image');
+                  },
                 ),
-                memCacheWidth: 800,
-                maxWidthDiskCache: 800,
-                fadeInDuration: const Duration(milliseconds: 300),
               ),
             ),
           ],
@@ -446,15 +454,40 @@ class _ChatScreenState extends State<ChatScreen> {
           
           final url = await _storageService.uploadImage(file, widget.chatId);
           
+          if (url.isEmpty) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to get image URL from server'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+          
           if (mounted) {
-            context.read<ChatBloc>().add(
-              SendMessageEvent(
-                chatId: widget.chatId,
-                content: url,
-                type: MessageType.image,
-                senderId: widget.currentUser.id,
-              ),
-            );
+            try {
+              context.read<ChatBloc>().add(
+                SendMessageEvent(
+                  chatId: widget.chatId,
+                  content: url,
+                  type: MessageType.image,
+                  senderId: widget.currentUser.id,
+                ),
+              );
+              AppLogger.info('Message with image sent successfully');
+            } catch (e) {
+              AppLogger.error('Failed to send message with image', e, StackTrace.current);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to send message: ${e.toString().split('\n').first}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
           }
         } catch (e) {
           AppLogger.error('Failed to upload image', e, StackTrace.current);
@@ -517,15 +550,40 @@ class _ChatScreenState extends State<ChatScreen> {
         try {
           final url = await _storageService.uploadFile(file, widget.chatId);
           
+          if (url.isEmpty) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to get file URL from server'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+          
           if (mounted) {
-            context.read<ChatBloc>().add(
-              SendMessageEvent(
-                chatId: widget.chatId,
-                content: url,
-                type: MessageType.file,
-                senderId: widget.currentUser.id,
-              ),
-            );
+            try {
+              context.read<ChatBloc>().add(
+                SendMessageEvent(
+                  chatId: widget.chatId,
+                  content: url,
+                  type: MessageType.file,
+                  senderId: widget.currentUser.id,
+                ),
+              );
+              AppLogger.info('Message with file sent successfully');
+            } catch (e) {
+              AppLogger.error('Failed to send message with file', e, StackTrace.current);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to send message: ${e.toString().split('\n').first}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
           }
         } catch (e) {
           AppLogger.error('Failed to upload file', e, StackTrace.current);
@@ -557,6 +615,28 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     }
+  }
+
+  Widget _buildImageErrorWidget(String message) {
+    return Container(
+      width: 200,
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.broken_image, color: Colors.white70, size: 40),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
