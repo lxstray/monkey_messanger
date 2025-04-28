@@ -8,15 +8,17 @@ import 'package:monkey_messanger/utils/app_constants.dart';
 import 'package:monkey_messanger/utils/app_colors.dart';
 import 'package:monkey_messanger/utils/app_theme.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
+import 'package:monkey_messanger/utils/supabase_config.dart';
 import 'package:monkey_messanger/services/auth_repository_impl.dart';
 import 'package:monkey_messanger/services/auth_repository.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
 import 'package:monkey_messanger/services/auth_event.dart';
-import 'package:monkey_messanger/services/auth_state.dart';
+import 'package:monkey_messanger/services/auth_state.dart' as app_auth;
 import 'package:monkey_messanger/services/chat_bloc.dart';
 import 'package:monkey_messanger/screens/login_screen.dart';
 import 'package:monkey_messanger/screens/chat_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import 'firebase_options.dart';
 
@@ -26,6 +28,13 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: SupabaseConfig.supabaseUrl,
+    anonKey: SupabaseConfig.supabaseAnonKey,
+    debug: true, // Set to false in production
   );
   
   // Initialize SharedPreferences
@@ -117,12 +126,12 @@ class MyApp extends StatelessWidget {
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.darkTheme,
-          home: BlocConsumer<AuthBloc, AuthState>(
+          home: BlocConsumer<AuthBloc, app_auth.AuthState>(
             listener: (context, state) {
-              if (state.hasError) {
+              if (state.hasError == true) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(state.errorMessage!),
+                    content: Text(state.errorMessage ?? 'Произошла ошибка'),
                     backgroundColor: AppColors.errorColor,
                   ),
                 );
@@ -132,7 +141,7 @@ class MyApp extends StatelessWidget {
               // Логирование текущего состояния
               AppLogger.info('Current AuthState: ${state.status}');
               
-              if (state.status == AuthStatus.initial) {
+              if (state.status == app_auth.AuthStatus.initial) {
                 // Возвращаем загрузочный экран для начального состояния
                 return const Scaffold(
                   body: Center(
@@ -141,12 +150,12 @@ class MyApp extends StatelessWidget {
                 );
               }
               
-              if (state.isAuthenticated) {
+              if (state.isAuthenticated == true) {
                 // Используем экран списка чатов для аутентифицированных пользователей
                 return const ChatListScreen();
               }
               
-              if (state.isLoading) {
+              if (state.isLoading == true) {
                 // Возвращаем загрузочный экран для состояния загрузки
                 return const Scaffold(
                   body: Center(
