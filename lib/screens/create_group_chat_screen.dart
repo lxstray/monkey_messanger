@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:monkey_messanger/models/contact_entity.dart';
 import 'package:monkey_messanger/models/user_entity.dart';
 import 'package:monkey_messanger/services/chat_repository_impl.dart';
+import 'package:monkey_messanger/services/contact_repository_impl.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
 
 class CreateGroupChatScreen extends StatefulWidget {
@@ -19,49 +21,56 @@ class CreateGroupChatScreen extends StatefulWidget {
 
 class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
   final TextEditingController _groupNameController = TextEditingController();
-  final List<UserEntity> _selectedUsers = [];
-  List<UserEntity> _availableUsers = [];
+  final List<ContactEntity> _selectedContacts = [];
+  List<ContactEntity> _availableContacts = [];
   bool _isLoading = true;
   String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
+    _loadContacts();
+  }
+  
+  @override
+  void dispose() {
+    _groupNameController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadUsers() async {
+  Future<void> _loadContacts() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Получаем всех пользователей, кроме текущего
-      final usersSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('id', isNotEqualTo: widget.currentUser.id)
-          .get();
+      // Получаем контакты пользователя
+      final contactRepository = ContactRepositoryImpl(
+        firestore: FirebaseFirestore.instance,
+      );
+      
+      final contactsSnapshot = await contactRepository
+          .getUserContacts(widget.currentUser.id)
+          .first;
 
       setState(() {
-        _availableUsers = usersSnapshot.docs
-            .map((doc) => UserEntity.fromMap({...doc.data(), 'id': doc.id}))
-            .toList();
+        _availableContacts = contactsSnapshot;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Ошибка при загрузке пользователей: ${e.toString()}';
+        _errorMessage = 'Ошибка при загрузке контактов: ${e.toString()}';
         _isLoading = false;
       });
     }
   }
 
-  void _toggleUserSelection(UserEntity user) {
+  void _toggleContactSelection(ContactEntity contact) {
     setState(() {
-      if (_selectedUsers.contains(user)) {
-        _selectedUsers.remove(user);
+      if (_selectedContacts.contains(contact)) {
+        _selectedContacts.remove(contact);
       } else {
-        _selectedUsers.add(user);
+        _selectedContacts.add(contact);
       }
     });
   }
@@ -74,9 +83,9 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
       return;
     }
 
-    if (_selectedUsers.isEmpty) {
+    if (_selectedContacts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выберите хотя бы одного пользователя')),
+        const SnackBar(content: Text('Выберите хотя бы одного участника')),
       );
       return;
     }
@@ -109,7 +118,8 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
         storage: FirebaseStorage.instance,
       );
       
-      final participantIds = _selectedUsers.map((user) => user.id).toList();
+      // Извлекаем contactId из выбранных контактов
+      final participantIds = _selectedContacts.map((contact) => contact.contactId).toList();
       AppLogger.info('Selected participants: ${participantIds.join(", ")}');
       AppLogger.info('Total number of participants: ${participantIds.length}');
       
@@ -165,6 +175,7 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
           style: TextStyle(color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
       body: _isLoading
           ? const Center(
@@ -180,105 +191,136 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                     textAlign: TextAlign.center,
                   ),
                 )
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: _groupNameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          labelText: 'Название группы',
-                          hintText: 'Введите название группы',
-                          labelStyle: const TextStyle(color: Colors.white70),
-                          hintStyle:
-                              TextStyle(color: Colors.white.withOpacity(0.5)),
-                          enabledBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white70),
+              : _availableContacts.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 64,
+                            color: Colors.white.withOpacity(0.5),
                           ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF4A90E2)),
+                          const SizedBox(height: 16),
+                          Text(
+                            'У вас нет контактов',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 18,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Добавьте контакты в разделе "Контакты"',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Выберите участников:',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: _groupNameController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: 'Название группы',
+                              hintText: 'Введите название группы',
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              hintStyle:
+                                  TextStyle(color: Colors.white.withOpacity(0.5)),
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white70),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(color: Color(0xFF4A90E2)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Выберите участников:',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: _availableContacts.length,
+                              itemBuilder: (context, index) {
+                                final contact = _availableContacts[index];
+                                final isSelected = _selectedContacts.contains(contact);
+                                return ListTile(
+                                  title: Text(
+                                    contact.name,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  subtitle: Text(
+                                    contact.email,
+                                    style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7)),
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: const Color(0xFF4A90E2),
+                                    child: contact.photoUrl != null
+                                        ? ClipOval(
+                                            child: Image.network(
+                                              contact.photoUrl!,
+                                              width: 40,
+                                              height: 40,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => Text(
+                                                contact.name.substring(0, 1).toUpperCase(),
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                              ),
+                                            ),
+                                          )
+                                        : Text(
+                                            contact.name.substring(0, 1).toUpperCase(),
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                          ),
+                                  ),
+                                  trailing: Icon(
+                                    isSelected
+                                        ? Icons.check_circle
+                                        : Icons.circle_outlined,
+                                    color: isSelected
+                                        ? const Color(0xFF4A90E2)
+                                        : Colors.white70,
+                                  ),
+                                  onTap: () => _toggleContactSelection(contact),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _selectedContacts.isEmpty ? null : _createGroupChat,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4A90E2),
+                              disabledBackgroundColor: const Color(0xFF4A90E2).withOpacity(0.5),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text(
+                              'Создать группу',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: _availableUsers.length,
-                          itemBuilder: (context, index) {
-                            final user = _availableUsers[index];
-                            final isSelected = _selectedUsers.contains(user);
-                            return ListTile(
-                              title: Text(
-                                user.name,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              subtitle: Text(
-                                user.email,
-                                style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7)),
-                              ),
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF4A90E2),
-                                child: user.photoUrl != null
-                                    ? ClipOval(
-                                        child: Image.network(
-                                          user.photoUrl!,
-                                          width: 40,
-                                          height: 40,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : Text(
-                                        user.name.substring(0, 1).toUpperCase(),
-                                        style: const TextStyle(
-                                            color: Colors.white),
-                                      ),
-                              ),
-                              trailing: Icon(
-                                isSelected
-                                    ? Icons.check_circle
-                                    : Icons.circle_outlined,
-                                color: isSelected
-                                    ? const Color(0xFF4A90E2)
-                                    : Colors.white70,
-                              ),
-                              onTap: () => _toggleUserSelection(user),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _createGroupChat,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text(
-                          'Создать группу',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
     );
-  }
-
-  @override
-  void dispose() {
-    _groupNameController.dispose();
-    super.dispose();
   }
 } 
