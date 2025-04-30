@@ -96,13 +96,6 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
       return;
     }
 
-    if (_selectedContacts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выберите хотя бы одного участника')),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -322,7 +315,7 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton(
-                            onPressed: _selectedContacts.isEmpty ? null : _createGroupChat,
+                            onPressed: _isLoading ? null : _createGroupChat,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4A90E2),
                               disabledBackgroundColor: const Color(0xFF4A90E2).withOpacity(0.5),
