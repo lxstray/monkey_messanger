@@ -720,22 +720,13 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageInput() {
+    final bool hasText = _messageController.text.trim().isNotEmpty;
+    
     return Container(
       color: const Color(0xFF2A2A2A),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         children: [
-          IconButton(
-            icon: Icon(
-              _isAttachmentMenuOpen ? Icons.close : Icons.add,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              setState(() {
-                _isAttachmentMenuOpen = !_isAttachmentMenuOpen;
-              });
-            },
-          ),
           Expanded(
             child: TextField(
               controller: _messageController,
@@ -745,29 +736,49 @@ class _ChatScreenState extends State<ChatScreen> {
                 hintStyle: TextStyle(color: Colors.grey),
                 border: InputBorder.none,
               ),
+              onChanged: (text) {
+                // Trigger rebuild when text changes
+                setState(() {});
+              },
             ),
           ),
-          if (_messageController.text.trim().isEmpty)
-            GestureDetector(
-              onLongPressStart: (_) => _startRecording(),
-              onLongPressEnd: (_) => _stopRecordingAndSend(),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _isRecording ? Colors.red : const Color(0xFF4A90E2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _isRecording ? Icons.mic : Icons.mic_none,
-                  color: Colors.white,
-                ),
-              ),
-            )
-          else
+          if (hasText)
             IconButton(
               icon: const Icon(Icons.send, color: Color(0xFF4A90E2)),
               onPressed: _sendTextMessage,
+            )
+          else
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _isAttachmentMenuOpen ? Icons.close : Icons.add,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isAttachmentMenuOpen = !_isAttachmentMenuOpen;
+                    });
+                  },
+                ),
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onLongPressStart: (_) => _startRecording(),
+                  onLongPressEnd: (_) => _stopRecordingAndSend(),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _isRecording ? Colors.red : const Color(0xFF4A90E2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isRecording ? Icons.mic : Icons.mic_none,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
         ],
       ),

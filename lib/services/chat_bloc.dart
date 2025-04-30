@@ -245,27 +245,45 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       // Обновляем последнее сообщение в чате
       String lastMessage = '';
+      String lastMessagePlainText = ''; // Незашифрованная версия для превью
+      
       switch (event.type) {
         case MessageType.text:
-          lastMessage = event.content;
+          lastMessage = _encryptMessage(event.content); // Шифруем текст для хранения
+          lastMessagePlainText = event.content; // Оставляем открытый текст для отображения в отладочных целях
           break;
         case MessageType.image:
-          lastMessage = '📷 Image';
+          lastMessage = '📷 Изображение';
+          lastMessagePlainText = lastMessage;
           break;
         case MessageType.file:
-          lastMessage = '📎 File: ${event.content.split('/').last}';
+          lastMessage = '📎 Файл: ${event.content.split('/').last}';
+          lastMessagePlainText = lastMessage;
           break;
         case MessageType.voice:
-          lastMessage = '🎤 Voice message';
+          String duration = '';
+          if (event.voiceDurationSeconds != null) {
+            final minutes = event.voiceDurationSeconds! ~/ 60;
+            final seconds = event.voiceDurationSeconds! % 60;
+            duration = ' (${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')})';
+          }
+          lastMessage = '🎤 Голосовое сообщение$duration';
+          lastMessagePlainText = lastMessage;
           break;
         case MessageType.system:
           lastMessage = event.content;
+          lastMessagePlainText = lastMessage;
           break;
       }
 
+      // Обновляем данные чата с шифрованием текстового сообщения
       await _firestore.collection('chats').doc(event.chatId).update({
-        'lastMessage': lastMessage,
+        'lastMessageText': lastMessage,
+        'lastMessagePlainText': lastMessagePlainText, // Для отладки
+        'lastMessage': lastMessage, // Обновляем оба поля для совместимости
         'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageSenderId': event.senderId,
+        'lastMessageType': event.type.index, // Сохраняем тип последнего сообщения
       });
     } catch (e) {
       AppLogger.error('Failed to send message', e, StackTrace.current);
@@ -308,6 +326,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     } catch (e) {
       AppLogger.error('Failed to decrypt message', e, StackTrace.current);
       throw e; // Пробрасываем ошибку для обработки выше
+    }
+  }
+
+  // Публичный метод для расшифрования сообщений
+  String decryptMessageSafe(String encryptedMessage) {
+    try {
+      return _decryptMessage(encryptedMessage);
+    } catch (e) {
+      AppLogger.error('Failed to decrypt message safely', e, StackTrace.current);
+      return '[Зашифрованное сообщение]';
     }
   }
 
