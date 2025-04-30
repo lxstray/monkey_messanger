@@ -202,17 +202,12 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
               
               // Если это текстовое сообщение, которое нужно расшифровать
               if (messageType == MessageType.text) {
-                // Используем plainText версию если она есть, иначе пытаемся расшифровать
-                if (chat['lastMessagePlainText'] != null) {
-                  lastMessage = chat['lastMessagePlainText'] as String? ?? '';
-                } else {
-                  final encryptedMessage = chat['lastMessageText'] as String? ?? '';
-                  try {
-                    // Используем безопасный метод расшифрования из блока
-                    lastMessage = context.read<ChatBloc>().decryptMessageSafe(encryptedMessage);
-                  } catch (e) {
-                    lastMessage = '[Зашифрованное сообщение]';
-                  }
+                final encryptedMessage = chat['lastMessageText'] as String? ?? '';
+                try {
+                  // Используем безопасный метод расшифрования из блока
+                  lastMessage = context.read<ChatBloc>().decryptMessageSafe(encryptedMessage);
+                } catch (e) {
+                  lastMessage = '[Зашифрованное сообщение]';
                 }
               } else {
                 // Для нетекстовых сообщений берем как есть

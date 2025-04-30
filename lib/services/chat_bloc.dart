@@ -245,20 +245,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       // Обновляем последнее сообщение в чате
       String lastMessage = '';
-      String lastMessagePlainText = ''; // Незашифрованная версия для превью
       
       switch (event.type) {
         case MessageType.text:
           lastMessage = _encryptMessage(event.content); // Шифруем текст для хранения
-          lastMessagePlainText = event.content; // Оставляем открытый текст для отображения в отладочных целях
           break;
         case MessageType.image:
           lastMessage = '📷 Изображение';
-          lastMessagePlainText = lastMessage;
           break;
         case MessageType.file:
           lastMessage = '📎 Файл: ${event.content.split('/').last}';
-          lastMessagePlainText = lastMessage;
           break;
         case MessageType.voice:
           String duration = '';
@@ -268,23 +264,21 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
             duration = ' (${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')})';
           }
           lastMessage = '🎤 Голосовое сообщение$duration';
-          lastMessagePlainText = lastMessage;
           break;
         case MessageType.system:
           lastMessage = event.content;
-          lastMessagePlainText = lastMessage;
           break;
       }
 
-      // Обновляем данные чата с шифрованием текстового сообщения
-      await _firestore.collection('chats').doc(event.chatId).update({
+      // Базовое обновление для всех типов сообщений
+      final updateData = {
         'lastMessageText': lastMessage,
-        'lastMessagePlainText': lastMessagePlainText, // Для отладки
-        'lastMessage': lastMessage, // Обновляем оба поля для совместимости
         'lastMessageTime': FieldValue.serverTimestamp(),
         'lastMessageSenderId': event.senderId,
-        'lastMessageType': event.type.index, // Сохраняем тип последнего сообщения
-      });
+        'lastMessageType': event.type.index,
+      };
+
+      await _firestore.collection('chats').doc(event.chatId).update(updateData);
     } catch (e) {
       AppLogger.error('Failed to send message', e, StackTrace.current);
       emit(ChatError('Failed to send message. Please try again.'));

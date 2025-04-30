@@ -76,6 +76,7 @@ class ChatEntity extends Equatable {
       'lastMessageText': lastMessageText,
       'lastMessageTime': lastMessageTime.millisecondsSinceEpoch,
       'lastMessageSenderId': lastMessageSenderId,
+      'lastMessageType': 0, // По умолчанию текст
       'isGroup': isGroup,
       'unreadMessageCount': unreadMessageCount,
       'createdAt': createdAt.millisecondsSinceEpoch,
@@ -96,12 +97,20 @@ class ChatEntity extends Equatable {
       return DateTime.now();
     }
 
+    // Обработка текста последнего сообщения (совместимость со старыми данными)
+    String _getLastMessageText(Map<String, dynamic> data) {
+      if (data.containsKey('lastMessageText') && data['lastMessageText'] != null) {
+        return data['lastMessageText'] as String;
+      }
+      return '';
+    }
+
     return ChatEntity(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       imageUrl: map['imageUrl'],
       participantIds: List<String>.from(map['participantIds'] ?? []),
-      lastMessageText: map['lastMessageText'] ?? '',
+      lastMessageText: _getLastMessageText(map),
       lastMessageTime: _parseDateTime(map['lastMessageTime']),
       lastMessageSenderId: map['lastMessageSenderId'],
       isGroup: map['isGroup'] ?? false,
