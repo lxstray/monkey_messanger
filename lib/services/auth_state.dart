@@ -9,6 +9,7 @@ enum AuthStatus {
   unauthenticated,
   error,
   passwordResetSent,
+  requiresTwoFactor,
 }
 
 class AuthState extends Equatable {
@@ -16,12 +17,14 @@ class AuthState extends Equatable {
   final UserEntity? user;
   final String? errorMessage;
   final bool isNewUser;
+  final String? email; // Used for 2FA verification
 
   const AuthState({
     this.status = AuthStatus.initial,
     this.user,
     this.errorMessage,
     this.isNewUser = false,
+    this.email,
   });
 
   AuthState copyWith({
@@ -29,12 +32,14 @@ class AuthState extends Equatable {
     UserEntity? user,
     String? errorMessage,
     bool? isNewUser,
+    String? email,
   }) {
     return AuthState(
       status: status ?? this.status,
       user: user ?? this.user,
       errorMessage: errorMessage,
       isNewUser: isNewUser ?? this.isNewUser,
+      email: email ?? this.email,
     );
   }
 
@@ -42,6 +47,7 @@ class AuthState extends Equatable {
   bool get isLoading => status == AuthStatus.loading;
   bool get hasError => status == AuthStatus.error;
   bool get isPasswordResetSent => status == AuthStatus.passwordResetSent;
+  bool get isTwoFactorRequired => status == AuthStatus.requiresTwoFactor;
 
   factory AuthState.initial() {
     return const AuthState(status: AuthStatus.initial);
@@ -73,9 +79,16 @@ class AuthState extends Equatable {
   factory AuthState.passwordResetSent() {
     return const AuthState(status: AuthStatus.passwordResetSent);
   }
+  
+  factory AuthState.requiresTwoFactor(String email) {
+    return AuthState(
+      status: AuthStatus.requiresTwoFactor,
+      email: email,
+    );
+  }
 
   @override
-  List<Object?> get props => [status, user, errorMessage, isNewUser];
+  List<Object?> get props => [status, user, errorMessage, isNewUser, email];
 }
 
 extension FirebaseAuthExceptionExtension on FirebaseAuthException {

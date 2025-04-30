@@ -9,6 +9,7 @@ class UserEntity extends Equatable {
   final DateTime createdAt;
   final DateTime lastActive;
   final bool isOnline;
+  final bool is2faEnabled;
 
   const UserEntity({
     required this.id,
@@ -19,6 +20,7 @@ class UserEntity extends Equatable {
     required this.createdAt,
     required this.lastActive,
     required this.isOnline,
+    this.is2faEnabled = false,
   });
 
   UserEntity copyWith({
@@ -30,6 +32,7 @@ class UserEntity extends Equatable {
     DateTime? createdAt,
     DateTime? lastActive,
     bool? isOnline,
+    bool? is2faEnabled,
   }) {
     return UserEntity(
       id: id ?? this.id,
@@ -40,6 +43,7 @@ class UserEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       lastActive: lastActive ?? this.lastActive,
       isOnline: isOnline ?? this.isOnline,
+      is2faEnabled: is2faEnabled ?? this.is2faEnabled,
     );
   }
 
@@ -53,6 +57,7 @@ class UserEntity extends Equatable {
     createdAt,
     lastActive,
     isOnline,
+    is2faEnabled,
   ];
   
   Map<String, dynamic> toMap() {
@@ -65,6 +70,7 @@ class UserEntity extends Equatable {
       'createdAt': createdAt.millisecondsSinceEpoch,
       'lastActive': lastActive.millisecondsSinceEpoch,
       'isOnline': isOnline,
+      '2faEnabled': is2faEnabled,
     };
   }
 
@@ -86,6 +92,7 @@ class UserEntity extends Equatable {
               ? map['lastActive'] 
               : map['lastActive']?.toDate() ?? DateTime.now()),
       isOnline: map['isOnline'] ?? false,
+      is2faEnabled: map['2faEnabled'] ?? false,
     );
   }
 } 

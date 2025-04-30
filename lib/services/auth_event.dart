@@ -84,4 +84,15 @@ class AuthUpdatePasswordEvent extends AuthEvent {
 
 class AuthDeleteAccountEvent extends AuthEvent {
   const AuthDeleteAccountEvent();
+}
+
+class AuthToggle2FAEvent extends AuthEvent {
+  final bool enable;
+
+  const AuthToggle2FAEvent({
+    required this.enable,
+  });
+
+  @override
+  List<Object?> get props => [enable];
 } 

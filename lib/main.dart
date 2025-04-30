@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:monkey_messanger/screens/two_factor_auth_screen.dart';
+import 'package:monkey_messanger/services/email_service.dart';
 import 'package:monkey_messanger/utils/app_constants.dart';
 import 'package:monkey_messanger/utils/app_colors.dart';
 import 'package:monkey_messanger/utils/app_theme.dart';
@@ -65,12 +67,20 @@ void main() async {
     prefs: sharedPreferences,
   );
   
+  // Create email service for 2FA
+  final emailService = EmailService(
+    firebaseAuth: FirebaseAuth.instance,
+    firestore: FirebaseFirestore.instance,
+    prefs: sharedPreferences,
+  );
+  
   // Регистрируем наблюдатель для Bloc
   Bloc.observer = SimpleBlocObserver();
   
   runApp(
     MyApp(
       authRepository: authRepository,
+      emailService: emailService,
     ),
   );
 }
@@ -116,10 +126,12 @@ class SimpleBlocObserver extends BlocObserver {
 
 class MyApp extends StatelessWidget {
   final AuthRepository authRepository;
+  final EmailService emailService;
   
   const MyApp({
     super.key,
     required this.authRepository,
+    required this.emailService,
   });
 
   @override
@@ -127,12 +139,14 @@ class MyApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<AuthRepository>.value(value: authRepository),
+        RepositoryProvider<EmailService>.value(value: emailService),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider<AuthBloc>(
             create: (context) => AuthBloc(
               authRepository: authRepository,
+              emailService: emailService,
             ),
           ),
           BlocProvider<ChatBloc>(
@@ -179,6 +193,11 @@ class MyApp extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   ),
                 );
+              }
+              
+              // Show 2FA verification screen if required
+              if (state.isTwoFactorRequired == true && state.email != null) {
+                return TwoFactorAuthScreen(email: state.email!);
               }
               
               return const LoginScreen();

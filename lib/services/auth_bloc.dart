@@ -6,14 +6,19 @@ import 'package:monkey_messanger/models/user_entity.dart';
 import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/auth_repository.dart';
 import 'package:monkey_messanger/services/auth_state.dart';
+import 'package:monkey_messanger/services/email_service.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
+  final EmailService _emailService;
   StreamSubscription<User?>? _authStateSubscription;
 
-  AuthBloc({required AuthRepository authRepository})
-      : _authRepository = authRepository,
+  AuthBloc({
+    required AuthRepository authRepository,
+    required EmailService emailService,
+  })  : _authRepository = authRepository,
+        _emailService = emailService,
         super(AuthState.initial()) {
     // Register event handlers
     on<AuthCheckStatusEvent>(_onAuthCheckStatus);
@@ -25,6 +30,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthUpdateUserEvent>(_onUpdateUser);
     on<AuthUpdatePasswordEvent>(_onUpdatePassword);
     on<AuthDeleteAccountEvent>(_onDeleteAccount);
+    on<AuthToggle2FAEvent>(_onToggle2FA);
 
     // Check initial auth status
     add(const AuthCheckStatusEvent());
@@ -77,7 +83,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (credential.user != null) {
         final user = await _authRepository.getCurrentUser();
         if (user != null) {
-          emit(AuthState.authenticated(user));
+          // Check if 2FA is enabled for this user
+          final is2faEnabled = await _authRepository.isTwoFactorAuthEnabled();
+          if (is2faEnabled) {
+            // User has 2FA enabled, we need to send a verification code
+            final sent = await _emailService.sendVerificationCode(user.email);
+            if (sent) {
+              // Need to show 2FA verification screen
+              emit(AuthState.requiresTwoFactor(user.email));
+            } else {
+              emit(AuthState.error('Failed to send verification code. Please try again.'));
+            }
+          } else {
+            // No 2FA, proceed with normal authentication
+            emit(AuthState.authenticated(user));
+          }
         }
       }
     } on FirebaseAuthException catch (e, stackTrace) {
@@ -100,7 +120,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (credential.user != null) {
         final user = await _authRepository.getCurrentUser();
         if (user != null) {
-          emit(AuthState.authenticated(user));
+          // Check if 2FA is enabled for this user
+          final is2faEnabled = await _authRepository.isTwoFactorAuthEnabled();
+          if (is2faEnabled) {
+            // User has 2FA enabled, we need to send a verification code
+            final sent = await _emailService.sendVerificationCode(user.email);
+            if (sent) {
+              // Need to show 2FA verification screen
+              emit(AuthState.requiresTwoFactor(user.email));
+            } else {
+              emit(AuthState.error('Failed to send verification code. Please try again.'));
+            }
+          } else {
+            // No 2FA, proceed with normal authentication
+            emit(AuthState.authenticated(user));
+          }
         }
       }
     } on FirebaseAuthException catch (e, stackTrace) {
@@ -240,6 +274,50 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e, stackTrace) {
       AppLogger.error('Unknown error deleting account', e, stackTrace);
       emit(AuthState.error('An unknown error occurred. Please try again.'));
+    }
+  }
+
+  Future<void> _onToggle2FA(
+    AuthToggle2FAEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    // Ensure user is not null before proceeding
+    final currentUser = state.user;
+    if (currentUser == null) {
+      AppLogger.warning('Attempted to toggle 2FA but state.user was null.');
+      return; // Exit if user is null
+    }
+    
+    emit(AuthState.loading());
+    try {
+      if (event.enable) {
+        await _authRepository.enableTwoFactorAuth();
+      } else {
+        await _authRepository.disableTwoFactorAuth();
+      }
+      
+      // Fetch updated user data to ensure the state is consistent
+      await _fetchAndEmitUserData();
+      
+    } catch (e, stackTrace) {
+      AppLogger.error('Error toggling 2FA', e, stackTrace);
+      emit(AuthState.error('An error occurred while updating 2FA settings. Please try again.'));
+    }
+  }
+
+  // Method to verify 2FA code
+  Future<bool> verify2FACode(String email, String code) async {
+    try {
+      final isValid = await _emailService.verifyCode(email, code);
+      if (isValid) {
+        // Code is valid, fetch and emit user data
+        await _fetchAndEmitUserData();
+        return true;
+      }
+      return false;
+    } catch (e, stackTrace) {
+      AppLogger.error('Error verifying 2FA code', e, stackTrace);
+      return false;
     }
   }
 

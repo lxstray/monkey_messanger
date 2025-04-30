@@ -142,6 +142,7 @@ class AuthRepositoryImpl implements AuthRepository {
             createdAt: createdAtDate,
             lastActive: lastActiveDate,
             isOnline: data['isOnline'] ?? false,
+            is2faEnabled: data['2faEnabled'] ?? false,
           );
         } else {
           // Пользователь аутентифицирован через Firebase Auth, но данные в Firestore отсутствуют
@@ -155,6 +156,7 @@ class AuthRepositoryImpl implements AuthRepository {
             createdAt: DateTime.now(),
             lastActive: DateTime.now(),
             isOnline: true,
+            is2faEnabled: false,  // По умолчанию 2FA выключена
           );
           
           // Сохраняем данные нового пользователя

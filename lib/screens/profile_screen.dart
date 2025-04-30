@@ -32,172 +32,217 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           )
         : Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: _pickAndUploadImage,
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: _isUploading ? Colors.grey : const Color(0xFF4A90E2),
-                        child: _isUploading
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : currentUser.photoUrl != null
-                                ? ClipOval(
-                                    child: Image.network(
-                                      currentUser.photoUrl!,
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
-                                        return const Center(
-                                          child: CircularProgressIndicator(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: _pickAndUploadImage,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: _isUploading ? Colors.grey : const Color(0xFF4A90E2),
+                          child: _isUploading
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : currentUser.photoUrl != null
+                                  ? ClipOval(
+                                      child: Image.network(
+                                        currentUser.photoUrl!,
+                                        width: 100,
+                                        height: 100,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (context, error, stackTrace) => Text(
+                                          currentUser.name.isNotEmpty
+                                              ? currentUser.name[0].toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
                                             color: Colors.white,
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                        );
-                                      },
-                                      errorBuilder: (context, error, stackTrace) => Text(
-                                        currentUser.name.isNotEmpty
-                                            ? currentUser.name[0].toUpperCase()
-                                            : '?',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
+                                    )
+                                  : Text(
+                                      currentUser.name.isNotEmpty
+                                          ? currentUser.name[0].toUpperCase()
+                                          : '?',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  )
-                                : Text(
-                                    currentUser.name.isNotEmpty
-                                        ? currentUser.name[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                      ),
-                      if (!_isUploading)
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF2A2A2A),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 18,
-                          ),
                         ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  currentUser.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  currentUser.email,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Role: ${currentUser.role}',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Divider(color: Colors.white24),
-                const SizedBox(height: 20),
-                Text(
-                  'Аккаунт создан: ${_formatDate(currentUser.createdAt)}',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Последняя активность: ${_formatDate(currentUser.lastActive)}',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
-                  ),
-                ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          backgroundColor: const Color(0xFF2A2A2A),
-                          title: const Text(
-                            'Выход из аккаунта',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: const Text(
-                            'Вы уверены, что хотите выйти?',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text(
-                                'Отмена',
-                                style: TextStyle(color: Colors.white70),
-                              ),
+                        if (!_isUploading)
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2A2A2A),
+                              shape: BoxShape.circle,
                             ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                context.read<AuthBloc>().add(const AuthSignOutEvent());
-                              },
-                              child: const Text(
-                                'Выйти',
-                                style: TextStyle(color: Colors.red),
-                              ),
+                            child: const Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 18,
                             ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                          ),
+                      ],
                     ),
                   ),
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text(
-                    'Выйти из аккаунта',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  const SizedBox(height: 20),
+                  Text(
+                    currentUser.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    currentUser.email,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Role: ${currentUser.role}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Аккаунт создан: ${_formatDate(currentUser.createdAt)}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Последняя активность: ${_formatDate(currentUser.lastActive)}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 16),
+                  
+                  // 2FA Toggle switch - Используем ListTile для более компактной верстки
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.security,
+                      color: Color(0xFF4A90E2),
+                      size: 24,
+                    ),
+                    title: const Text(
+                      'Двухфакторная аутентификация',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Код подтверждения будет отправлен на email',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: Switch(
+                      value: currentUser.is2faEnabled,
+                      onChanged: (value) {
+                        _toggle2FA(value);
+                      },
+                      activeColor: const Color(0xFF4A90E2),
+                      activeTrackColor: const Color(0xFF4A90E2).withOpacity(0.5),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              backgroundColor: const Color(0xFF2A2A2A),
+                              title: const Text(
+                                'Выход из аккаунта',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              content: const Text(
+                                'Вы уверены, что хотите выйти?',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text(
+                                    'Отмена',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    context.read<AuthBloc>().add(const AuthSignOutEvent());
+                                  },
+                                  child: const Text(
+                                    'Выйти',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.logout, color: Colors.white),
+                      label: const Text(
+                        'Выйти из аккаунта',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
           );
   }
@@ -261,5 +306,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isUploading = false);
       }
     }
+  }
+  
+  void _toggle2FA(bool enable) {
+    context.read<AuthBloc>().add(AuthToggle2FAEvent(enable: enable));
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(enable 
+          ? 'Двухфакторная аутентификация включена' 
+          : 'Двухфакторная аутентификация отключена'),
+        backgroundColor: const Color(0xFF4A90E2),
+      ),
+    );
   }
 } 
