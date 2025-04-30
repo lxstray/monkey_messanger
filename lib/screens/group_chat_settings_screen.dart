@@ -631,7 +631,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
         backgroundColor: const Color(0xFF2A2A2A),
         title: const Text(
           'Настройки группы',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -651,28 +651,29 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                         const Icon(
                           Icons.error_outline,
                           color: Colors.red,
-                          size: 48,
+                          size: 40,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
                           _errorMessage!,
-                          style: const TextStyle(color: Colors.red),
+                          style: const TextStyle(color: Colors.red, fontSize: 14),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         ElevatedButton(
                           onPressed: _loadChatParticipants,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4A90E2),
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                           ),
-                          child: const Text('Повторить'),
+                          child: const Text('Повторить', style: TextStyle(fontSize: 14)),
                         ),
                       ],
                     ),
                   ),
                 )
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -683,7 +684,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                           child: Stack(
                             children: [
                               CircleAvatar(
-                                radius: 50,
+                                radius: 45,
                                 backgroundColor: const Color(0xFF4A90E2),
                                 backgroundImage: _selectedImage != null
                                     ? FileImage(_selectedImage!)
@@ -694,7 +695,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                     ? Text(
                                         widget.chatEntity.name.substring(0, 1).toUpperCase(),
                                         style: const TextStyle(
-                                          fontSize: 40,
+                                          fontSize: 36,
                                           color: Colors.white,
                                         ),
                                       )
@@ -705,7 +706,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                   bottom: 0,
                                   right: 0,
                                   child: Container(
-                                    padding: const EdgeInsets.all(4),
+                                    padding: const EdgeInsets.all(3),
                                     decoration: const BoxDecoration(
                                       color: Color(0xFF4A90E2),
                                       shape: BoxShape.circle,
@@ -713,7 +714,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                     child: const Icon(
                                       Icons.camera_alt,
                                       color: Colors.white,
-                                      size: 20,
+                                      size: 18,
                                     ),
                                   ),
                                 ),
@@ -721,16 +722,17 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Название группы
                       if (_isAdmin)
                         TextField(
                           controller: _groupNameController,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white, fontSize: 15),
                           decoration: InputDecoration(
                             labelText: 'Название группы',
-                            labelStyle: const TextStyle(color: Colors.white70),
+                            labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                             enabledBorder: const OutlineInputBorder(
                               borderSide: BorderSide(color: Colors.white70),
                             ),
@@ -738,7 +740,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                               borderSide: BorderSide(color: Color(0xFF4A90E2)),
                             ),
                             suffixIcon: IconButton(
-                              icon: const Icon(Icons.save, color: Color(0xFF4A90E2)),
+                              icon: const Icon(Icons.save, color: Color(0xFF4A90E2), size: 22),
                               onPressed: _updateGroupName,
                             ),
                           ),
@@ -747,28 +749,30 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                         Card(
                           color: const Color(0xFF2A2A2A),
                           child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             title: const Text(
                               'Название группы',
-                              style: TextStyle(color: Colors.white70),
+                              style: TextStyle(color: Colors.white70, fontSize: 13),
                             ),
                             subtitle: Text(
                               widget.chatEntity.name,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 15,
                               ),
                             ),
                           ),
                         ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Создатель группы
                       Card(
                         color: const Color(0xFF2A2A2A),
                         child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           title: const Text(
                             'Создатель группы',
-                            style: TextStyle(color: Colors.white70),
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
                           ),
                           subtitle: FutureBuilder<DocumentSnapshot>(
                             future: FirebaseFirestore.instance
@@ -779,14 +783,14 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return const Text(
                                   'Загрузка...',
-                                  style: TextStyle(color: Colors.white),
+                                  style: TextStyle(color: Colors.white, fontSize: 15),
                                 );
                               }
                               
                               if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
                                 return const Text(
                                   'Неизвестно',
-                                  style: TextStyle(color: Colors.white),
+                                  style: TextStyle(color: Colors.white, fontSize: 15),
                                 );
                               }
                               
@@ -795,14 +799,14 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                 data['name'] ?? 'Неизвестно',
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                 ),
                               );
                             },
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Список участников
                       Row(
@@ -812,19 +816,19 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                             'Участники',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           if (_isAdmin)
                             IconButton(
-                              icon: const Icon(Icons.person_add, color: Color(0xFF4A90E2)),
+                              icon: const Icon(Icons.person_add, color: Color(0xFF4A90E2), size: 22),
                               onPressed: _addUserToGroup,
                               tooltip: 'Добавить участника',
                             ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -837,16 +841,19 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                           
                           return Card(
                             color: const Color(0xFF2A2A2A),
+                            margin: const EdgeInsets.symmetric(vertical: 3),
                             child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               leading: CircleAvatar(
+                                radius: 20,
                                 backgroundColor: const Color(0xFF4A90E2),
                                 backgroundImage: participant.photoUrl != null
                                     ? NetworkImage(participant.photoUrl!)
                                     : null,
                                 child: participant.photoUrl == null
                                     ? Text(
-                                        participant.name.substring(0, 1).toUpperCase(),
-                                        style: const TextStyle(color: Colors.white),
+                                        participant.name.isNotEmpty ? participant.name.substring(0, 1).toUpperCase() : '?',
+                                        style: const TextStyle(color: Colors.white, fontSize: 16),
                                       )
                                     : null,
                               ),
@@ -854,27 +861,27 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                 children: [
                                   Text(
                                     participant.name,
-                                    style: const TextStyle(color: Colors.white),
+                                    style: const TextStyle(color: Colors.white, fontSize: 15),
                                   ),
                                   if (isParticipantAdmin)
                                     Padding(
-                                      padding: const EdgeInsets.only(left: 8.0),
+                                      padding: const EdgeInsets.only(left: 6.0),
                                       child: Icon(
                                         isCreator ? Icons.star : Icons.admin_panel_settings,
                                         color: isCreator ? Colors.yellow : Colors.green,
-                                        size: 16,
+                                        size: 14,
                                       ),
                                     ),
                                 ],
                               ),
                               subtitle: Text(
                                 participant.email,
-                                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
                               ),
                               // Меню действий для администраторов
                               trailing: participant.id != widget.currentUser.id && _isAdmin
                                   ? PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert, color: Colors.white),
+                                      icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
                                       onSelected: (value) {
                                         if (value == 'remove') {
                                           _removeUserFromGroup(participant.id);
@@ -895,9 +902,9 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                                 value: 'remove_admin',
                                                 child: Row(
                                                   children: [
-                                                    Icon(Icons.person_remove, color: Colors.red),
+                                                    Icon(Icons.person_remove, color: Colors.red, size: 18),
                                                     SizedBox(width: 8),
-                                                    Text('Снять админа', style: TextStyle(color: Colors.white)),
+                                                    Text('Снять админа', style: TextStyle(color: Colors.white, fontSize: 14)),
                                                   ],
                                                 ),
                                               ),
@@ -908,9 +915,9 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                                 value: 'make_admin',
                                                 child: Row(
                                                   children: [
-                                                    Icon(Icons.admin_panel_settings, color: Colors.green),
+                                                    Icon(Icons.admin_panel_settings, color: Colors.green, size: 18),
                                                     SizedBox(width: 8),
-                                                    Text('Сделать админом', style: TextStyle(color: Colors.white)),
+                                                    Text('Сделать админом', style: TextStyle(color: Colors.white, fontSize: 14)),
                                                   ],
                                                 ),
                                               ),
@@ -930,9 +937,9 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                               value: 'remove',
                                               child: Row(
                                                 children: [
-                                                  Icon(Icons.delete, color: Colors.red),
+                                                  Icon(Icons.delete, color: Colors.red, size: 18),
                                                   SizedBox(width: 8),
-                                                  Text('Удалить из группы', style: TextStyle(color: Colors.white)),
+                                                  Text('Удалить из группы', style: TextStyle(color: Colors.white, fontSize: 14)),
                                                 ],
                                               ),
                                             ),
@@ -948,7 +955,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                           );
                         },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Кнопка "Покинуть группу"
                       Center(
@@ -958,15 +965,15 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
+                              horizontal: 20,
+                              vertical: 10,
                             ),
                           ),
-                          icon: const Icon(Icons.exit_to_app),
-                          label: const Text('Покинуть группу'),
+                          icon: const Icon(Icons.exit_to_app, size: 20),
+                          label: const Text('Покинуть группу', style: TextStyle(fontSize: 15)),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Если выбрано изображение, добавляем кнопку "Сохранить изображение"
                       if (_selectedImage != null && _isAdmin)
@@ -977,12 +984,12 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                               backgroundColor: const Color(0xFF4A90E2),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
+                                horizontal: 20,
+                                vertical: 10,
                               ),
                             ),
-                            icon: const Icon(Icons.save),
-                            label: const Text('Сохранить изображение'),
+                            icon: const Icon(Icons.save, size: 20),
+                            label: const Text('Сохранить изображение', style: TextStyle(fontSize: 15)),
                           ),
                         ),
                     ],

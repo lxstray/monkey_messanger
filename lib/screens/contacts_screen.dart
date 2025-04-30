@@ -66,28 +66,28 @@ class _ContactsScreenState extends State<ContactsScreen> {
               children: [
                 Icon(
                   Icons.person_outline,
-                  size: 64,
+                  size: 56,
                   color: Colors.white.withOpacity(0.5),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Text(
                   'Контакты не найдены',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.5),
-                    fontSize: 18,
+                    fontSize: 17,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 ElevatedButton.icon(
                   onPressed: () => widget.onAddContactPressed(currentUser.id),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A90E2),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                   ),
-                  icon: const Icon(Icons.person_add, color: Colors.white),
+                  icon: const Icon(Icons.person_add, color: Colors.white, size: 20),
                   label: const Text(
                     'Добавить контакт',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(color: Colors.white, fontSize: 15),
                   ),
                 ),
               ],
@@ -124,8 +124,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
               itemCount: contacts.length,
               separatorBuilder: (context, index) => Center(
                 child: Container(
-                  width: MediaQuery.of(context).size.width * 0.8,
-                  height: 1,
+                  width: MediaQuery.of(context).size.width * 0.85,
+                  height: 0.8,
                   color: Colors.white.withOpacity(0.1),
                 ),
               ),
@@ -140,18 +140,18 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   leadingWidget = ClipOval(
                     child: Image.network(
                       displayPhotoUrl,
-                      width: 50,
-                      height: 50,
+                      width: 44,
+                      height: 44,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return CircleAvatar(
                           backgroundColor: const Color(0xFF4A90E2),
-                          radius: 25,
+                          radius: 22,
                           child: Text(
                             contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -162,12 +162,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 } else {
                   leadingWidget = CircleAvatar(
                     backgroundColor: const Color(0xFF4A90E2),
-                    radius: 25,
+                    radius: 22,
                     child: Text(
                       contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -194,25 +194,25 @@ class _ContactsScreenState extends State<ContactsScreen> {
                           backgroundColor: const Color(0xFF2A2A2A),
                           title: const Text(
                             'Подтверждение',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: Colors.white, fontSize: 18),
                           ),
                           content: Text(
                             'Вы уверены, что хотите удалить контакт "${contact.name}"?',
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
                           ),
                           actions: <Widget>[
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(false),
                               child: const Text(
                                 'Отмена',
-                                style: TextStyle(color: Colors.white70),
+                                style: TextStyle(color: Colors.white70, fontSize: 14),
                               ),
                             ),
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(true),
                               child: const Text(
                                 'Удалить',
-                                style: TextStyle(color: Colors.red),
+                                style: TextStyle(color: Colors.red, fontSize: 14),
                               ),
                             ),
                           ],
@@ -249,21 +249,21 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     }
                   },
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     leading: leadingWidget,
                     title: Text(
                       contact.name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 15,
                       ),
                     ),
                     subtitle: Text(
                       contact.email,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -271,6 +271,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     trailing: const Icon(
                       Icons.chevron_right,
                       color: Colors.white70,
+                      size: 22,
                     ),
                     onTap: () {
                       Navigator.push(

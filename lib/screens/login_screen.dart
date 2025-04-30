@@ -23,10 +23,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -62,11 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Вход'),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
+      backgroundColor: AppColors.darkBackground,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state.hasError) {
@@ -81,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
@@ -92,22 +94,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         const Icon(
                           Icons.chat_bubble_rounded,
-                          size: 80,
+                          size: 64,
                           color: AppColors.primaryColor,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
                           AppConstants.appName,
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primaryColor,
                               ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           'Welcome back',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: AppColors.darkTextSecondary,
                               ),
                           textAlign: TextAlign.center,
@@ -115,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
                     
                     // Login form
                     Form(
@@ -139,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           
                           CustomTextField(
                             controller: _passwordController,
@@ -151,6 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _obscurePassword
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
+                                size: 20,
                               ),
                               onPressed: _togglePasswordVisibility,
                             ),
@@ -162,37 +165,42 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const ForgotPasswordScreen(),
-                                  ),
-                                );
-                              },
-                              child: const Text('Forgot Password?'),
+                          const SizedBox(height: 12),
+                          
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ForgotPasswordScreen(),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
                             ),
+                            child: const Text('Forgot Password?', style: TextStyle(fontSize: 13)),
                           ),
                           
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           
                           BlocBuilder<AuthBloc, AuthState>(
                             builder: (context, state) {
                               return ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
                                 onPressed: state.isLoading ? null : _login,
                                 child: state.isLoading
                                     ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
+                                        height: 18,
+                                        width: 18,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                         ),
                                       )
-                                    : const Text('Login'),
+                                    : const Text('Login', style: TextStyle(fontSize: 15)),
                               );
                             },
                           ),
@@ -200,25 +208,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
                     Row(
                       children: [
-                        const Expanded(child: Divider()),
+                        const Expanded(child: Divider(height: 1)),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             'OR',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
                                   color: AppColors.darkTextSecondary,
                                 ),
                           ),
                         ),
-                        const Expanded(child: Divider()),
+                        const Expanded(child: Divider(height: 1)),
                       ],
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
@@ -230,23 +238,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           'Don\'t have an account?',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.darkTextSecondary,
                               ),
                         ),
                         TextButton(
+                          style: TextButton.styleFrom(
+                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          ),
                           onPressed: _navigateToRegister,
-                          child: const Text('Register'),
+                          child: const Text('Register', style: TextStyle(fontSize: 13)),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),

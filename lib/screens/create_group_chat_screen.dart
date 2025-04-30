@@ -181,7 +181,7 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
         backgroundColor: const Color(0xFF2A2A2A),
         title: const Text(
           'Создание группового чата',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -196,7 +196,7 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
               ? Center(
                   child: Text(
                     _errorMessage,
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                 )
@@ -207,24 +207,24 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                         children: [
                           Icon(
                             Icons.person_outline,
-                            size: 64,
+                            size: 56,
                             color: Colors.white.withOpacity(0.5),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           Text(
                             'У вас нет контактов',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.5),
-                              fontSize: 18,
+                              fontSize: 17,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           Text(
                             'Добавьте контакты в разделе "Контакты"',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.5),
-                              fontSize: 14,
+                              fontSize: 13,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -232,19 +232,19 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                       ),
                     )
                   : Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           TextField(
                             controller: _groupNameController,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
                             decoration: InputDecoration(
                               labelText: 'Название группы',
                               hintText: 'Введите название группы',
-                              labelStyle: const TextStyle(color: Colors.white70),
-                              hintStyle:
-                                  TextStyle(color: Colors.white.withOpacity(0.5)),
+                              labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                               enabledBorder: const OutlineInputBorder(
                                 borderSide: BorderSide(color: Colors.white70),
                               ),
@@ -253,16 +253,16 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           const Text(
                             'Выберите участников:',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Expanded(
                             child: ListView.builder(
                               itemCount: _availableContacts.length,
@@ -273,16 +273,18 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                                 final displayPhotoUrl = contactUser?.photoUrl ?? contact.photoUrl;
                                 
                                 return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                   title: Text(
                                     contact.name,
-                                    style: const TextStyle(color: Colors.white),
+                                    style: const TextStyle(color: Colors.white, fontSize: 15),
                                   ),
                                   subtitle: Text(
                                     contact.email,
                                     style: TextStyle(
-                                        color: Colors.white.withOpacity(0.7)),
+                                        color: Colors.white.withOpacity(0.7), fontSize: 12),
                                   ),
                                   leading: CircleAvatar(
+                                    radius: 20,
                                     backgroundColor: const Color(0xFF4A90E2),
                                     child: displayPhotoUrl != null && displayPhotoUrl.isNotEmpty 
                                         ? ClipOval(
@@ -294,14 +296,14 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                                               errorBuilder: (context, error, stackTrace) => Text(
                                                 contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                                                 style: const TextStyle(
-                                                    color: Colors.white),
+                                                    color: Colors.white, fontSize: 16),
                                               ),
                                             ),
                                           )
                                         : Text(
                                             contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                                             style: const TextStyle(
-                                                color: Colors.white),
+                                                color: Colors.white, fontSize: 16),
                                           ),
                                   ),
                                   trailing: Icon(
@@ -311,23 +313,24 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                                     color: isSelected
                                         ? const Color(0xFF4A90E2)
                                         : Colors.white70,
+                                    size: 22,
                                   ),
                                   onTap: () => _toggleContactSelection(contact),
                                 );
                               },
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           ElevatedButton(
                             onPressed: _selectedContacts.isEmpty ? null : _createGroupChat,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4A90E2),
                               disabledBackgroundColor: const Color(0xFF4A90E2).withOpacity(0.5),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: const Text(
                               'Создать группу',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: Colors.white, fontSize: 15),
                             ),
                           ),
                         ],

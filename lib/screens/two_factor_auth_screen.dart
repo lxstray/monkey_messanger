@@ -146,12 +146,16 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
         backgroundColor: const Color(0xFF2A2A2A),
         title: const Text(
           'Двухфакторная аутентификация',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          // Кнопка для показа тестового кода (для разработки)
           IconButton(
-            icon: const Icon(Icons.code, color: Colors.white),
+            icon: const Icon(Icons.code, color: Colors.white, size: 22),
             onPressed: _showTestCode,
             tooltip: 'Показать тестовый код',
           ),
@@ -159,141 +163,144 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Подтвердите вход',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Подтвердите вход',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Мы отправили код подтверждения на ${widget.email}',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 16,
+                const SizedBox(height: 12),
+                Text(
+                  'Мы отправили код подтверждения на ${widget.email}',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 15,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Введите код для продолжения входа в приложение.',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 14,
+                const SizedBox(height: 6),
+                Text(
+                  'Введите код для продолжения входа в приложение.',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(
-                  6,
-                  (index) => SizedBox(
-                    width: 45,
-                    child: TextField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        filled: true,
-                        fillColor: const Color(0xFF2A2A2A),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(
+                    6,
+                    (index) => SizedBox(
+                      width: 40,
+                      child: TextField(
+                        controller: _controllers[index],
+                        focusNode: _focusNodes[index],
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        maxLength: 1,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
+                        decoration: InputDecoration(
+                          counterText: '',
+                          filled: true,
+                          fillColor: const Color(0xFF2A2A2A),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (value) {
+                          // Clear error message when user starts typing
+                          if (_errorMessage != null) {
+                            setState(() {
+                              _errorMessage = null;
+                            });
+                          }
+                          
+                          if (value.isNotEmpty && index < 5) {
+                            FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+                          }
+                          
+                          // Auto-verify when all fields are filled
+                          if (index == 5 && value.isNotEmpty) {
+                            _verifyCode();
+                          }
+                        },
                       ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      onChanged: (value) {
-                        // Clear error message when user starts typing
-                        if (_errorMessage != null) {
-                          setState(() {
-                            _errorMessage = null;
-                          });
-                        }
-                        
-                        if (value.isNotEmpty && index < 5) {
-                          FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
-                        }
-                        
-                        // Auto-verify when all fields are filled
-                        if (index == 5 && value.isNotEmpty) {
-                          _verifyCode();
-                        }
-                      },
                     ),
                   ),
                 ),
-              ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontSize: 14,
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isVerifying ? null : _verifyCode,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90E2),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      disabledBackgroundColor: const Color(0xFF4A90E2).withOpacity(0.5),
+                    ),
+                    child: _isVerifying
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Подтвердить',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: TextButton(
+                    onPressed: _resendCode,
+                    child: Text(
+                      'Не получили код? Отправить снова',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isVerifying ? null : _verifyCode,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    disabledBackgroundColor: const Color(0xFF4A90E2).withOpacity(0.5),
-                  ),
-                  child: _isVerifying
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Подтвердить',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: TextButton(
-                  onPressed: _resendCode,
-                  child: Text(
-                    'Не получили код? Отправить снова',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

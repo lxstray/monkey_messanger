@@ -321,14 +321,15 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: const Color(0xFF2A2A2A),
         title: Text(
           widget.chatName,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
         actions: [
           BlocBuilder<ChatBloc, ChatState>(
             builder: (context, state) {
               if (state is ChatLoaded && state.chat != null && state.chat!.isGroup) {
                 return IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white),
+                  icon: const Icon(Icons.settings, color: Colors.white, size: 24),
+                  padding: const EdgeInsets.only(right: 12),
                   onPressed: () => _openGroupSettings(context, state.chat!),
                 );
               }
@@ -367,7 +368,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   'No messages yet',
                                   style: TextStyle(
                                     color: Colors.white54,
-                                    fontSize: 16,
+                                    fontSize: 15,
                                   ),
                                 ),
                               ),
@@ -391,7 +392,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           _isUploading ? 'Uploading...' : 'Downloading...',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                         ),
                       ],
@@ -426,16 +427,16 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Icon(
               Icons.chat_bubble_outline,
-              size: 64,
+              size: 56,
               color: Colors.white.withOpacity(0.5),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               'No messages yet\nStart a conversation!',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.5),
-                fontSize: 16,
+                fontSize: 15,
               ),
             ),
           ],
@@ -446,14 +447,14 @@ class _ChatScreenState extends State<ChatScreen> {
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
         final isMyMessage = message.senderId == widget.currentUser.id;
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 6),
           child: Align(
             alignment: isMyMessage ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
@@ -462,19 +463,19 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               decoration: BoxDecoration(
                 color: isMyMessage ? const Color(0xFF4A90E2) : const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildMessageContent(message),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     DateFormat('HH:mm').format(message.timestamp),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.6),
-                      fontSize: 12,
+                      fontSize: 10,
                     ),
                   ),
                 ],
@@ -491,7 +492,7 @@ class _ChatScreenState extends State<ChatScreen> {
       case MessageType.text:
         return Text(
           message.text ?? '',
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 15),
         );
       case MessageType.image:
         final String imageUrl = message.mediaUrl ?? '';
@@ -506,35 +507,35 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             if (message.text != null && message.text!.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   message.text!,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
                 ),
               ),
             Stack(
               children: [
                 Container(
                   constraints: const BoxConstraints(
-                    maxWidth: 200,
-                    maxHeight: 200,
+                    maxWidth: 180,
+                    maxHeight: 180,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.grey[800],
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     child: Image.network(
                       imageUrl,
-                      width: 200,
-                      height: 150,
+                      width: 180,
+                      height: 135,
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Container(
-                          width: 200,
-                          height: 150,
+                          width: 180,
+                          height: 135,
                           color: Colors.grey[900],
                           child: Center(
                             child: CircularProgressIndicator(
@@ -554,12 +555,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 Positioned(
-                  right: 8,
-                  bottom: 8,
+                  right: 6,
+                  bottom: 6,
                   child: InkWell(
                     onTap: () => _downloadMedia(imageUrl, 'image_${message.id}.jpg'),
                     child: Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.5),
                         shape: BoxShape.circle,
@@ -567,7 +568,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: const Icon(
                         Icons.download,
                         color: Colors.white,
-                        size: 16,
+                        size: 14,
                       ),
                     ),
                   ),
@@ -586,15 +587,15 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.attach_file, color: Colors.white),
-              const SizedBox(width: 8),
+              const Icon(Icons.attach_file, color: Colors.white, size: 20),
+              const SizedBox(width: 6),
               Flexible(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       message.mediaName ?? 'File',
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (message.mediaSizeBytes != null)
@@ -602,17 +603,17 @@ class _ChatScreenState extends State<ChatScreen> {
                         '${(message.mediaSizeBytes! / 1024).toStringAsFixed(1)} KB',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Icon(
                 Icons.download,
                 color: Colors.white.withOpacity(0.7),
-                size: 18,
+                size: 16,
               ),
             ],
           ),
@@ -628,7 +629,7 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.grey.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -638,9 +639,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ? Icons.pause_circle_filled 
                     : Icons.play_circle_filled,
                   color: Colors.white,
-                  size: 32,
+                  size: 28,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -649,6 +650,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         _formatDuration(message.voiceDurationSeconds!),
                         style: const TextStyle(
                           color: Colors.white,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -656,7 +658,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       'Голосовое сообщение',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -671,6 +673,7 @@ class _ChatScreenState extends State<ChatScreen> {
           style: TextStyle(
             color: Colors.white.withOpacity(0.7),
             fontStyle: FontStyle.italic,
+            fontSize: 13,
           ),
         );
     }
@@ -679,7 +682,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildAttachmentMenu() {
     return Container(
       color: const Color(0xFF2A2A2A),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -708,11 +711,11 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white),
-          const SizedBox(height: 4),
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(height: 3),
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+            style: const TextStyle(color: Colors.white, fontSize: 11),
           ),
         ],
       ),
@@ -724,17 +727,21 @@ class _ChatScreenState extends State<ChatScreen> {
     
     return Container(
       color: const Color(0xFF2A2A2A),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _messageController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              minLines: 1,
+              maxLines: 5,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 hintText: 'Type a message...',
-                hintStyle: TextStyle(color: Colors.grey),
+                hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
                 border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               ),
               onChanged: (text) {
                 // Trigger rebuild when text changes
@@ -745,6 +752,8 @@ class _ChatScreenState extends State<ChatScreen> {
           if (hasText)
             IconButton(
               icon: const Icon(Icons.send, color: Color(0xFF4A90E2)),
+              iconSize: 24,
+              padding: const EdgeInsets.all(8),
               onPressed: _sendTextMessage,
             )
           else
@@ -755,19 +764,22 @@ class _ChatScreenState extends State<ChatScreen> {
                     _isAttachmentMenuOpen ? Icons.close : Icons.add,
                     color: Colors.white,
                   ),
+                  iconSize: 24,
+                  padding: const EdgeInsets.all(8),
                   onPressed: () {
                     setState(() {
                       _isAttachmentMenuOpen = !_isAttachmentMenuOpen;
                     });
                   },
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 2),
                 GestureDetector(
                   onLongPressStart: (_) => _startRecording(),
                   onLongPressEnd: (_) => _stopRecordingAndSend(),
                   child: Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
                       color: _isRecording ? Colors.red : const Color(0xFF4A90E2),
                       shape: BoxShape.circle,
@@ -775,6 +787,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Icon(
                       _isRecording ? Icons.mic : Icons.mic_none,
                       color: Colors.white,
+                      size: 20,
                     ),
                   ),
                 ),
@@ -1004,11 +1017,11 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.broken_image, color: Colors.white70, size: 40),
-          const SizedBox(height: 8),
+          const Icon(Icons.broken_image, color: Colors.white70, size: 32),
+          const SizedBox(height: 6),
           Text(
             message,
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],
       ),

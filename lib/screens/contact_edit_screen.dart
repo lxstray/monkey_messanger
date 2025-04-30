@@ -178,10 +178,17 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
         backgroundColor: const Color(0xFF2A2A2A),
         title: const Text(
           'Редактирование контакта',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save, size: 24),
+            tooltip: 'Сохранить',
+            onPressed: _saveContact,
+          )
+        ],
       ),
       body: _isLoading
           ? const Center(
@@ -189,30 +196,30 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
                 color: Color(0xFF4A90E2),
               ),
             )
-          : Padding(
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (_errorMessage.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
+                      padding: const EdgeInsets.only(bottom: 12.0),
                       child: Text(
                         _errorMessage,
-                        style: const TextStyle(color: Colors.red),
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
                         textAlign: TextAlign.center,
                       ),
                     ),
                   Center(
                     child: CircleAvatar(
-                      radius: 50,
+                      radius: 45,
                       backgroundColor: const Color(0xFF4A90E2),
                       child: displayPhotoUrl != null
                           ? ClipOval(
                               child: Image.network(
                                 displayPhotoUrl,
-                                width: 100,
-                                height: 100,
+                                width: 90,
+                                height: 90,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => Text(
                                   displayName.isNotEmpty
@@ -220,7 +227,7 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
                                       : '?',
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 36,
+                                    fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -232,74 +239,58 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
                                   : '?',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 36,
+                                fontSize: 32,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _nameController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
                     decoration: InputDecoration(
                       labelText: 'Имя контакта',
-                      labelStyle: const TextStyle(color: Colors.white70),
+                      labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                       hintText: 'Введите имя контакта',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
                       enabledBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.white70),
                       ),
                       focusedBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF4A90E2)),
                       ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _notesController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
                     decoration: InputDecoration(
                       labelText: 'Заметки',
-                      labelStyle: const TextStyle(color: Colors.white70),
+                      labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
                       hintText: 'Добавьте заметки о контакте',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
                       enabledBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.white70),
                       ),
                       focusedBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF4A90E2)),
                       ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                     ),
                     maxLines: 3,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'Email: ${widget.contact.email}',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _saveContact,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4A90E2),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text(
-                            'Сохранить',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Row(
                     children: [
                       Expanded(
@@ -307,12 +298,12 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
                           onPressed: _messageContact,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
-                          icon: const Icon(Icons.message, color: Colors.white),
+                          icon: const Icon(Icons.message, color: Colors.white, size: 20),
                           label: const Text(
                             'Написать сообщение',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
+                            style: TextStyle(color: Colors.white, fontSize: 15),
                           ),
                         ),
                       ),

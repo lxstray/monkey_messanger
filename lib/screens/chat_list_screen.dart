@@ -108,8 +108,10 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
           bottom: TabBar(
             controller: _tabController,
             indicatorColor: const Color(0xFF4A90E2),
+            dividerColor: Colors.transparent,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white.withOpacity(0.5),
+            labelStyle: const TextStyle(fontSize: 14),
             tabs: const [
               Tab(text: 'Чаты'),
               Tab(text: 'Контакты'),
@@ -121,7 +123,7 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
               border: Border(
                 bottom: BorderSide(
                   color: Color(0xFF4A90E2),
-                  width: 3.0,
+                  width: 2.5,
                 ),
               ),
             ),
@@ -156,6 +158,7 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
         child: Icon(
           _currentPage == 0 ? Icons.chat : Icons.person_add,
           color: Colors.white,
+          size: 24,
         ),
       ) : null,
     );
@@ -194,15 +197,15 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
               children: [
                 Icon(
                   Icons.chat_bubble_outline,
-                  size: 64,
+                  size: 56,
                   color: Colors.white.withOpacity(0.5),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Text(
                   'No chats yet',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.5),
-                    fontSize: 18,
+                    fontSize: 16,
                   ),
                 ),
               ],
@@ -245,8 +248,8 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                 itemCount: chats.length,
                 separatorBuilder: (context, index) => Center(
                   child: Container(
-                    width: MediaQuery.of(context).size.width * 0.8,
-                    height: 1,
+                    width: MediaQuery.of(context).size.width * 0.85,
+                    height: 0.8,
                     color: Colors.white.withOpacity(0.1),
                   ),
                 ),
@@ -299,18 +302,18 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                     leadingWidget = ClipOval(
                       child: Image.network(
                         displayPhotoUrl,
-                        width: 50,
-                        height: 50,
+                        width: 44,
+                        height: 44,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return CircleAvatar(
                             backgroundColor: const Color(0xFF4A90E2),
-                            radius: 25,
+                            radius: 22,
                             child: Text(
                               chatName.isNotEmpty ? chatName[0].toUpperCase() : '?',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -321,11 +324,11 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                   } else {
                     leadingWidget = CircleAvatar(
                       backgroundColor: const Color(0xFF4A90E2),
-                      radius: 25,
+                      radius: 22,
                       child: Icon(
                         isGroup ? Icons.group : Icons.person,
                         color: Colors.white,
-                        size: 30,
+                        size: 26,
                       ),
                     );
                   }
@@ -410,21 +413,21 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                       }
                     },
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       leading: leadingWidget,
                       title: Text(
                         chatName,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 15,
                         ),
                       ),
                       subtitle: Text(
                         lastMessage,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
-                          fontSize: 14,
+                          fontSize: 13,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -438,14 +441,14 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                               _formatTime(lastMessageTime),
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.5),
-                                fontSize: 12,
+                                fontSize: 11,
                               ),
                             ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3),
                           if (isGroup)
                             Icon(
                               Icons.group,
-                              size: 16,
+                              size: 14,
                               color: Colors.white.withOpacity(0.5),
                             ),
                         ],
@@ -493,30 +496,34 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF2A2A2A),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+          contentPadding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
           title: const Text(
             'Новый чат',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white, fontSize: 18),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.person, color: Color(0xFF4A90E2)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                leading: const Icon(Icons.person, color: Color(0xFF4A90E2), size: 22),
                 title: const Text(
                   'Личный чат',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white, fontSize: 15),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   _showPrivateChatDialog(context, currentUserId, authState);
                 },
               ),
-              const Divider(color: Colors.white24),
+              const Divider(color: Colors.white24, height: 1, indent: 20, endIndent: 20),
               ListTile(
-                leading: const Icon(Icons.group, color: Color(0xFF4A90E2)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                leading: const Icon(Icons.group, color: Color(0xFF4A90E2), size: 22),
                 title: const Text(
                   'Групповой чат',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white, fontSize: 15),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -536,9 +543,12 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF2A2A2A),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+          contentPadding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           title: const Text(
             'Выберите контакт',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white, fontSize: 18),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -573,19 +583,19 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                       children: [
                         Icon(
                           Icons.person_outline,
-                          size: 48,
+                          size: 40,
                           color: Colors.white.withOpacity(0.5),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
                           'У вас нет контактов',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.5),
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pop(context);
@@ -593,12 +603,12 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4A90E2),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                           ),
-                          icon: const Icon(Icons.person_add, color: Colors.white),
+                          icon: const Icon(Icons.person_add, color: Colors.white, size: 20),
                           label: const Text(
                             'Добавить контакт',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
                           ),
                         ),
                       ],
@@ -606,16 +616,13 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                   );
                 }
 
-                // Получаем список ID пользователей контактов
                 final contactUserIds = contacts.map((c) => c.contactId).toList();
                 
                 return FutureBuilder<Map<String, UserEntity>>(
-                  // Используем _fetchUsersData для загрузки данных пользователей
                   future: _fetchUsersData(contactUserIds),
                   builder: (context, userSnapshot) {
                     
                     if (userSnapshot.connectionState == ConnectionState.waiting && !userSnapshot.hasData) {
-                      // Показываем индикатор загрузки, пока данные пользователей загружаются
                       return const Center(
                         child: CircularProgressIndicator(
                           color: Color(0xFF4A90E2),
@@ -639,40 +646,37 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                       itemCount: contacts.length,
                       itemBuilder: (context, index) {
                         final contact = contacts[index];
-                        // Получаем данные пользователя для этого контакта
                         final contactUser = usersDataMap[contact.contactId];
-                        // Используем photoUrl из UserEntity, если доступно, иначе из ContactEntity
                         final displayPhotoUrl = contactUser?.photoUrl ?? contact.photoUrl; 
                         
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundColor: const Color(0xFF4A90E2),
-                            // Используем displayPhotoUrl для отображения аватара
                             child: displayPhotoUrl != null && displayPhotoUrl.isNotEmpty
                                 ? ClipOval(
                                     child: Image.network(
                                       displayPhotoUrl,
-                                      width: 40,
-                                      height: 40,
+                                      width: 36,
+                                      height: 36,
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) => Text(
                                         contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-                                        style: const TextStyle(color: Colors.white),
+                                        style: const TextStyle(color: Colors.white, fontSize: 14),
                                       ),
                                     ),
                                   )
                                 : Text(
                                     contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-                                    style: const TextStyle(color: Colors.white),
+                                    style: const TextStyle(color: Colors.white, fontSize: 14),
                                   ),
                           ),
                           title: Text(
                             contact.name,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
                           ),
                           subtitle: Text(
                             contact.email,
-                            style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                           ),
                           onTap: () async {
                             try {
@@ -728,7 +732,7 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Отмена',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ),
           ],
@@ -757,21 +761,24 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF2A2A2A),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+          contentPadding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           title: const Text(
             'Добавить новый контакт',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white, fontSize: 18),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   labelText: 'Имя',
                   hintText: 'Введите имя контакта',
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
                   enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.white70),
                   ),
@@ -782,12 +789,12 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
               ),
               TextField(
                 controller: emailController,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   labelText: 'Email',
                   hintText: 'Введите email контакта',
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
                   enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.white70),
                   ),
@@ -804,7 +811,7 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Отмена',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ),
             TextButton(
@@ -850,7 +857,7 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
               },
               child: const Text(
                 'Создать',
-                style: TextStyle(color: Color(0xFF4A90E2)),
+                style: TextStyle(color: Color(0xFF4A90E2), fontSize: 14),
               ),
             ),
           ],

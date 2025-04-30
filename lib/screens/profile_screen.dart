@@ -38,14 +38,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   GestureDetector(
                     onTap: _pickAndUploadImage,
                     child: Stack(
                       alignment: Alignment.bottomRight,
                       children: [
                         CircleAvatar(
-                          radius: 50,
+                          radius: 45,
                           backgroundColor: _isUploading ? Colors.grey : const Color(0xFF4A90E2),
                           child: _isUploading
                               ? const CircularProgressIndicator(color: Colors.white)
@@ -53,8 +53,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ? ClipOval(
                                       child: Image.network(
                                         currentUser.photoUrl!,
-                                        width: 100,
-                                        height: 100,
+                                        width: 90,
+                                        height: 90,
                                         fit: BoxFit.cover,
                                         loadingBuilder: (context, child, loadingProgress) {
                                           if (loadingProgress == null) return child;
@@ -70,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               : '?',
                                           style: const TextStyle(
                                             color: Colors.white,
-                                            fontSize: 36,
+                                            fontSize: 32,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -82,14 +82,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           : '?',
                                       style: const TextStyle(
                                         color: Colors.white,
-                                        fontSize: 36,
+                                        fontSize: 32,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                         ),
                         if (!_isUploading)
                           Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(3),
                             decoration: const BoxDecoration(
                               color: Color(0xFF2A2A2A),
                               shape: BoxShape.circle,
@@ -97,72 +97,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: const Icon(
                               Icons.edit,
                               color: Colors.white,
-                              size: 18,
+                              size: 16,
                             ),
                           ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Text(
                     currentUser.name,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     currentUser.email,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
-                      fontSize: 16,
+                      fontSize: 15,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Role: ${currentUser.role}',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white24, height: 0.8),
+                  const SizedBox(height: 10),
                   Text(
                     'Аккаунт создан: ${_formatDate(currentUser.createdAt)}',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Последняя активность: ${_formatDate(currentUser.lastActive)}',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const Divider(color: Colors.white24),
                   const SizedBox(height: 16),
+                  const Divider(color: Colors.white24, height: 0.8),
+                  const SizedBox(height: 12),
                   
-                  // 2FA Toggle switch - Используем ListTile для более компактной верстки
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(
                       Icons.security,
                       color: Color(0xFF4A90E2),
-                      size: 24,
+                      size: 22,
                     ),
                     title: const Text(
                       'Двухфакторная аутентификация',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -170,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Код подтверждения будет отправлен на email',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                     trailing: Switch(
@@ -183,9 +182,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   
-                  const SizedBox(height: 16),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.white24, height: 0.8),
+                  const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -195,20 +194,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (BuildContext context) {
                             return AlertDialog(
                               backgroundColor: const Color(0xFF2A2A2A),
+                              titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                              contentPadding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                              actionsPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               title: const Text(
                                 'Выход из аккаунта',
-                                style: TextStyle(color: Colors.white),
+                                style: TextStyle(color: Colors.white, fontSize: 18),
                               ),
                               content: const Text(
                                 'Вы уверены, что хотите выйти?',
-                                style: TextStyle(color: Colors.white),
+                                style: TextStyle(color: Colors.white, fontSize: 15),
                               ),
                               actions: <Widget>[
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
                                   child: const Text(
                                     'Отмена',
-                                    style: TextStyle(color: Colors.white70),
+                                    style: TextStyle(color: Colors.white70, fontSize: 14),
                                   ),
                                 ),
                                 TextButton(
@@ -218,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   },
                                   child: const Text(
                                     'Выйти',
-                                    style: TextStyle(color: Colors.red),
+                                    style: TextStyle(color: Colors.red, fontSize: 14),
                                   ),
                                 ),
                               ],
@@ -228,19 +230,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      icon: const Icon(Icons.logout, color: Colors.white),
+                      icon: const Icon(Icons.logout, color: Colors.white, size: 20),
                       label: const Text(
                         'Выйти из аккаунта',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: TextStyle(color: Colors.white, fontSize: 15),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

@@ -23,11 +23,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -60,6 +67,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkBackground,
+        title: const Text(
+          'Register',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state.hasError) {
@@ -74,33 +94,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo and title
                     Column(
                       children: [
                         const Icon(
-                          Icons.chat_bubble_rounded,
-                          size: 80,
+                          Icons.person_add_alt_1_rounded,
+                          size: 64,
                           color: AppColors.primaryColor,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
-                          AppConstants.appName,
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          'Create Account',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primaryColor,
+                                color: AppColors.darkTextPrimary,
                               ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
-                          'Create a new account',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          'Enter your details below',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: AppColors.darkTextSecondary,
                               ),
                           textAlign: TextAlign.center,
@@ -108,9 +128,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                     
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
                     
-                    // Registration form
                     Form(
                       key: _formKey,
                       child: Column(
@@ -129,7 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                           
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           
                           CustomTextField(
                             controller: _emailController,
@@ -147,7 +166,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                           
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           
                           CustomTextField(
                             controller: _passwordController,
@@ -159,6 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 _obscurePassword
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
+                                size: 20,
                               ),
                               onPressed: _togglePasswordVisibility,
                             ),
@@ -173,22 +193,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                           
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
                           
                           BlocBuilder<AuthBloc, AuthState>(
                             builder: (context, state) {
                               return ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
                                 onPressed: state.isLoading ? null : _register,
                                 child: state.isLoading
                                     ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
+                                        height: 18,
+                                        width: 18,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                         ),
                                       )
-                                    : const Text('Register'),
+                                    : const Text('Register', style: TextStyle(fontSize: 15)),
                               );
                             },
                           ),
@@ -196,25 +219,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
                     Row(
                       children: [
-                        const Expanded(child: Divider()),
+                        const Expanded(child: Divider(height: 1)),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             'OR',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
                                   color: AppColors.darkTextSecondary,
                                 ),
                           ),
                         ),
-                        const Expanded(child: Divider()),
+                        const Expanded(child: Divider(height: 1)),
                       ],
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
@@ -226,23 +249,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           'Already have an account?',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.darkTextSecondary,
                               ),
                         ),
                         TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          ),
                           onPressed: _navigateToLogin,
-                          child: const Text('Login'),
+                          child: const Text('Login', style: TextStyle(fontSize: 13)),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),

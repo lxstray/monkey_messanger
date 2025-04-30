@@ -37,8 +37,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Reset Password'),
+        backgroundColor: AppColors.darkSurface,
+        title: const Text(
+          'Reset Password',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
       ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -62,6 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
@@ -76,18 +83,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           size: 80,
                           color: AppColors.primaryColor,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
                           'Forgot Password',
-                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
+                                color: AppColors.darkTextPrimary,
                               ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
                           'Enter your email address and we\'ll send you instructions to reset your password',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: AppColors.darkTextSecondary,
                               ),
                           textAlign: TextAlign.center,
@@ -95,7 +103,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ],
                     ),
                     
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
                     
                     // Reset password form
                     Form(
@@ -119,22 +127,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             },
                           ),
                           
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
                           
                           BlocBuilder<AuthBloc, AuthState>(
                             builder: (context, state) {
                               return ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
                                 onPressed: state.isLoading ? null : _submitForm,
                                 child: state.isLoading
                                     ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
+                                        height: 18,
+                                        width: 18,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                         ),
                                       )
-                                    : const Text('Send Reset Instructions'),
+                                    : const Text('Send Reset Instructions', style: TextStyle(fontSize: 15)),
                               );
                             },
                           ),
@@ -142,12 +153,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
                     TextButton(
+                      style: TextButton.styleFrom(
+                         padding: const EdgeInsets.symmetric(vertical: 4),
+                      ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Back to Login'),
+                      child: const Text('Back to Login', style: TextStyle(fontSize: 13)),
                     ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
