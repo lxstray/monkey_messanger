@@ -23,6 +23,7 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
   final TextEditingController _groupNameController = TextEditingController();
   final List<ContactEntity> _selectedContacts = [];
   List<ContactEntity> _availableContacts = [];
+  Map<String, UserEntity> _contactsUserData = {};
   bool _isLoading = true;
   String _errorMessage = '';
 
@@ -41,10 +42,10 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
   Future<void> _loadContacts() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = '';
     });
 
     try {
-      // Получаем контакты пользователя
       final contactRepository = ContactRepositoryImpl(
         firestore: FirebaseFirestore.instance,
       );
@@ -52,16 +53,28 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
       final contactsSnapshot = await contactRepository
           .getUserContacts(widget.currentUser.id)
           .first;
+          
+      final contactUserIds = contactsSnapshot.map((c) => c.contactId).toList();
+      Map<String, UserEntity> usersData = {};
+      if (contactUserIds.isNotEmpty) {
+        usersData = await contactRepository.getUsersByIds(contactUserIds);
+      }
 
-      setState(() {
-        _availableContacts = contactsSnapshot;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Ошибка при загрузке контактов: ${e.toString()}';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _availableContacts = contactsSnapshot;
+          _contactsUserData = usersData;
+          _isLoading = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error('Error loading contacts or user data', e, stackTrace);
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Ошибка при загрузке контактов: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -95,7 +108,6 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
       _errorMessage = '';
     });
 
-    // Добавляем таймаут для предотвращения бесконечной загрузки
     Future<void> timeoutFuture = Future.delayed(const Duration(seconds: 15), () {
       if (mounted && _isLoading) {
         AppLogger.warning('Timeout при создании группового чата');
@@ -118,7 +130,6 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
         storage: FirebaseStorage.instance,
       );
       
-      // Извлекаем contactId из выбранных контактов
       final participantIds = _selectedContacts.map((contact) => contact.contactId).toList();
       AppLogger.info('Selected participants: ${participantIds.join(", ")}');
       AppLogger.info('Total number of participants: ${participantIds.length}');
@@ -152,10 +163,8 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
         );
       }
     } finally {
-      // Отменяем таймаут если операция завершилась
       timeoutFuture.timeout(Duration.zero, onTimeout: () {}).catchError((_) {});
       
-      // Гарантируем, что флаг загрузки будет сброшен в любом случае
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -260,6 +269,9 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                               itemBuilder: (context, index) {
                                 final contact = _availableContacts[index];
                                 final isSelected = _selectedContacts.contains(contact);
+                                final contactUser = _contactsUserData[contact.contactId];
+                                final displayPhotoUrl = contactUser?.photoUrl ?? contact.photoUrl;
+                                
                                 return ListTile(
                                   title: Text(
                                     contact.name,
@@ -272,22 +284,22 @@ class _CreateGroupChatScreenState extends State<CreateGroupChatScreen> {
                                   ),
                                   leading: CircleAvatar(
                                     backgroundColor: const Color(0xFF4A90E2),
-                                    child: contact.photoUrl != null
+                                    child: displayPhotoUrl != null && displayPhotoUrl.isNotEmpty 
                                         ? ClipOval(
                                             child: Image.network(
-                                              contact.photoUrl!,
+                                              displayPhotoUrl,
                                               width: 40,
                                               height: 40,
                                               fit: BoxFit.cover,
                                               errorBuilder: (context, error, stackTrace) => Text(
-                                                contact.name.substring(0, 1).toUpperCase(),
+                                                contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                                                 style: const TextStyle(
                                                     color: Colors.white),
                                               ),
                                             ),
                                           )
                                         : Text(
-                                            contact.name.substring(0, 1).toUpperCase(),
+                                            contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                                             style: const TextStyle(
                                                 color: Colors.white),
                                           ),

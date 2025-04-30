@@ -606,80 +606,116 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                   );
                 }
 
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: contacts.length,
-                  itemBuilder: (context, index) {
-                    final contact = contacts[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: const Color(0xFF4A90E2),
-                        child: contact.photoUrl != null
-                            ? ClipOval(
-                                child: Image.network(
-                                  contact.photoUrl!,
-                                  width: 40,
-                                  height: 40,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Text(
+                // Получаем список ID пользователей контактов
+                final contactUserIds = contacts.map((c) => c.contactId).toList();
+                
+                return FutureBuilder<Map<String, UserEntity>>(
+                  // Используем _fetchUsersData для загрузки данных пользователей
+                  future: _fetchUsersData(contactUserIds),
+                  builder: (context, userSnapshot) {
+                    
+                    if (userSnapshot.connectionState == ConnectionState.waiting && !userSnapshot.hasData) {
+                      // Показываем индикатор загрузки, пока данные пользователей загружаются
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF4A90E2),
+                        ),
+                      );
+                    }
+                    
+                    if (userSnapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Ошибка загрузки данных контактов: ${userSnapshot.error}',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      );
+                    }
+                    
+                    final usersDataMap = userSnapshot.data ?? {};
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: contacts.length,
+                      itemBuilder: (context, index) {
+                        final contact = contacts[index];
+                        // Получаем данные пользователя для этого контакта
+                        final contactUser = usersDataMap[contact.contactId];
+                        // Используем photoUrl из UserEntity, если доступно, иначе из ContactEntity
+                        final displayPhotoUrl = contactUser?.photoUrl ?? contact.photoUrl; 
+                        
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF4A90E2),
+                            // Используем displayPhotoUrl для отображения аватара
+                            child: displayPhotoUrl != null && displayPhotoUrl.isNotEmpty
+                                ? ClipOval(
+                                    child: Image.network(
+                                      displayPhotoUrl,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Text(
+                                        contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  )
+                                : Text(
                                     contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                                     style: const TextStyle(color: Colors.white),
                                   ),
-                                ),
-                              )
-                            : Text(
-                                contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                      ),
-                      title: Text(
-                        contact.name,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      subtitle: Text(
-                        contact.email,
-                        style: TextStyle(color: Colors.white.withOpacity(0.5)),
-                      ),
-                      onTap: () async {
-                        try {
-                          Navigator.pop(context);
-                          
-                          final chatRepository = ChatRepositoryImpl(
-                            firestore: FirebaseFirestore.instance,
-                            storage: FirebaseStorage.instance,
-                          );
+                          ),
+                          title: Text(
+                            contact.name,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          subtitle: Text(
+                            contact.email,
+                            style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                          ),
+                          onTap: () async {
+                            try {
+                              Navigator.pop(context);
+                              
+                              final chatRepository = ChatRepositoryImpl(
+                                firestore: FirebaseFirestore.instance,
+                                storage: FirebaseStorage.instance,
+                              );
 
-                          final chatEntity = await chatRepository.createPrivateChat(
-                            currentUserId,
-                            contact.contactId,
-                          );
+                              final chatEntity = await chatRepository.createPrivateChat(
+                                currentUserId,
+                                contact.contactId,
+                              );
 
-                          if (context.mounted) {
-                            context.read<ChatBloc>().add(LoadMessagesEvent(chatEntity.id));
-                            
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                  chatId: chatEntity.id,
-                                  chatName: chatEntity.name,
-                                  currentUser: authState.user!,
-                                ),
-                              ),
-                            ).then((_) {
-                              context.read<ChatBloc>().add(ResetChatEvent());
-                            });
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Ошибка: ${e.toString()}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
+                              if (context.mounted) {
+                                context.read<ChatBloc>().add(LoadMessagesEvent(chatEntity.id));
+                                
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatScreen(
+                                      chatId: chatEntity.id,
+                                      chatName: chatEntity.name,
+                                      currentUser: authState.user!,
+                                    ),
+                                  ),
+                                ).then((_) {
+                                  context.read<ChatBloc>().add(ResetChatEvent());
+                                });
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Ошибка: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        );
                       },
                     );
                   },

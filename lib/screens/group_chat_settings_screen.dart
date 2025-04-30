@@ -409,7 +409,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       return;
     }
     
-    // Если контакты еще загружаются
     if (_loadingContacts) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Загрузка контактов, пожалуйста подождите...')),
@@ -417,7 +416,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       return;
     }
     
-    // Если нет контактов
     if (_userContacts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('У вас нет контактов для добавления')),
@@ -425,7 +423,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       return;
     }
     
-    // Фильтруем контакты, исключая уже участвующих в чате пользователей
     final List<ContactEntity> availableContacts = _userContacts.where((contact) {
       return !widget.chatEntity.participantIds.contains(contact.contactId);
     }).toList();
@@ -437,7 +434,26 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       return;
     }
 
-    // Отображаем диалог выбора контакта
+    // Загрузка данных UserEntity для доступных контактов
+    Map<String, UserEntity> availableContactsUserData = {};
+    try {
+      final contactRepository = ContactRepositoryImpl(
+        firestore: FirebaseFirestore.instance,
+      );
+      final contactUserIds = availableContacts.map((c) => c.contactId).toList();
+      if (contactUserIds.isNotEmpty) {
+        availableContactsUserData = await contactRepository.getUsersByIds(contactUserIds);
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error('Error fetching user data for available contacts', e, stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка загрузки данных контактов')),
+        );
+      }
+      return; // Прерываем выполнение, если не удалось загрузить данные
+    }
+
     final ContactEntity? selectedContact = await showDialog<ContactEntity>(
       context: context,
       builder: (BuildContext context) {
@@ -449,19 +465,25 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
           ),
           content: SizedBox(
             width: double.maxFinite,
-            height: 300,
+            height: 300, // Можно сделать адаптивным или убрать ограничение
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: availableContacts.length,
               itemBuilder: (context, index) {
                 final contact = availableContacts[index];
+                // Получаем UserEntity для текущего контакта из загруженных данных
+                final contactUser = availableContactsUserData[contact.contactId];
+                // Определяем URL для аватара
+                final displayPhotoUrl = contactUser?.photoUrl ?? contact.photoUrl;
+                
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: const Color(0xFF4A90E2),
-                    child: contact.photoUrl != null
+                    // Используем displayPhotoUrl
+                    child: displayPhotoUrl != null && displayPhotoUrl.isNotEmpty
                         ? ClipOval(
                             child: Image.network(
-                              contact.photoUrl!,
+                              displayPhotoUrl,
                               width: 40,
                               height: 40,
                               fit: BoxFit.cover,
