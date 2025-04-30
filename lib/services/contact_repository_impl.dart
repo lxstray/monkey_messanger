@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:monkey_messanger/models/contact_entity.dart';
+import 'package:monkey_messanger/models/user_entity.dart';
 import 'package:monkey_messanger/services/contact_repository.dart';
 import 'package:monkey_messanger/utils/app_constants.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
@@ -177,6 +178,36 @@ class ContactRepositoryImpl implements ContactRepository {
       return ContactEntity.fromMap({...contactData, 'id': contactId});
     } catch (e, stackTrace) {
       AppLogger.error('Error creating contact', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, UserEntity>> getUsersByIds(List<String> userIds) async {
+    if (userIds.isEmpty) {
+      return {};
+    }
+    
+    // Firestore 'whereIn' query supports up to 30 elements per query
+    // We might need to batch if userIds list is larger, but let's keep it simple for now.
+    // Assuming userIds.length <= 30 for this implementation.
+    if (userIds.length > 30) {
+      AppLogger.warning('getUsersByIds called with >30 IDs (${userIds.length}). Firestore limitations might apply.');
+      // Consider implementing batching here if necessary
+    }
+
+    try {
+      final querySnapshot = await _usersCollection
+          .where(FieldPath.documentId, whereIn: userIds)
+          .get();
+
+      final Map<String, UserEntity> usersMap = {};
+      for (final doc in querySnapshot.docs) {
+        usersMap[doc.id] = UserEntity.fromMap({...doc.data(), 'id': doc.id});
+      }
+      return usersMap;
+    } catch (e, stackTrace) {
+      AppLogger.error('Error fetching users by IDs', e, stackTrace);
       rethrow;
     }
   }

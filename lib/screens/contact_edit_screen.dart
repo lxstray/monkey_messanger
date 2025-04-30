@@ -3,11 +3,13 @@ import 'package:monkey_messanger/models/contact_entity.dart';
 import 'package:monkey_messanger/models/user_entity.dart';
 import 'package:monkey_messanger/services/chat_repository_impl.dart';
 import 'package:monkey_messanger/services/contact_repository_impl.dart';
+import 'package:monkey_messanger/services/contact_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:monkey_messanger/screens/chat_screen.dart';
 import 'package:monkey_messanger/services/chat_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monkey_messanger/utils/app_logger.dart';
 
 class ContactEditScreen extends StatefulWidget {
   final ContactEntity contact;
@@ -26,14 +28,44 @@ class ContactEditScreen extends StatefulWidget {
 class _ContactEditScreenState extends State<ContactEditScreen> {
   late TextEditingController _nameController;
   late TextEditingController _notesController;
-  bool _isLoading = false;
+  bool _isLoading = true;
   String _errorMessage = '';
+  UserEntity? _contactUserEntity;
+
+  final ContactRepository _contactRepository = ContactRepositoryImpl(
+    firestore: FirebaseFirestore.instance,
+  );
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.contact.name);
     _notesController = TextEditingController(text: widget.contact.notes ?? '');
+    _loadContactUserData();
+  }
+
+  Future<void> _loadContactUserData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+    try {
+      final usersMap = await _contactRepository.getUsersByIds([widget.contact.contactId]);
+      if (mounted) {
+        setState(() {
+          _contactUserEntity = usersMap[widget.contact.contactId];
+          _isLoading = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error('Error loading contact user data', e, stackTrace);
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Не удалось загрузить данные контакта: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -60,17 +92,13 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
     });
 
     try {
-      final contactRepository = ContactRepositoryImpl(
-        firestore: FirebaseFirestore.instance,
-      );
-
       final updatedContact = widget.contact.copyWith(
         name: _nameController.text.trim(),
         notes: _notesController.text.trim(),
         updatedAt: DateTime.now(),
       );
 
-      await contactRepository.updateContact(updatedContact);
+      await _contactRepository.updateContact(updatedContact);
 
       if (mounted) {
         setState(() {
@@ -82,7 +110,7 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = e.toString();
+          _errorMessage = 'Ошибка сохранения: ${e.toString()}';
         });
       }
     }
@@ -110,7 +138,6 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
           _isLoading = false;
         });
 
-        // Navigate to chat screen
         context.read<ChatBloc>().add(LoadMessagesEvent(chatEntity.id));
         
         Navigator.pushReplacement(
@@ -128,7 +155,7 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = e.toString();
+          _errorMessage = 'Ошибка создания чата: ${e.toString()}';
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -142,6 +169,9 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final displayPhotoUrl = widget.contact.photoUrl ?? _contactUserEntity?.photoUrl;
+    final displayName = widget.contact.name;
+
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
@@ -177,16 +207,16 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: const Color(0xFF4A90E2),
-                      child: widget.contact.photoUrl != null
+                      child: displayPhotoUrl != null
                           ? ClipOval(
                               child: Image.network(
-                                widget.contact.photoUrl!,
+                                displayPhotoUrl,
                                 width: 100,
                                 height: 100,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => Text(
-                                  widget.contact.name.isNotEmpty
-                                      ? widget.contact.name[0].toUpperCase()
+                                  displayName.isNotEmpty
+                                      ? displayName[0].toUpperCase()
                                       : '?',
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -197,8 +227,8 @@ class _ContactEditScreenState extends State<ContactEditScreen> {
                               ),
                             )
                           : Text(
-                              widget.contact.name.isNotEmpty
-                                  ? widget.contact.name[0].toUpperCase()
+                              displayName.isNotEmpty
+                                  ? displayName[0].toUpperCase()
                                   : '?',
                               style: const TextStyle(
                                 color: Colors.white,

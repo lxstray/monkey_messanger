@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:monkey_messanger/utils/app_logger.dart';
 import 'package:monkey_messanger/models/contact_entity.dart';
 import 'package:monkey_messanger/services/contact_repository_impl.dart';
+import 'package:monkey_messanger/services/storage_service.dart';
 
 class GroupChatSettingsScreen extends StatefulWidget {
   final String chatId;
@@ -35,6 +36,9 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
   File? _selectedImage;
   List<ContactEntity> _userContacts = [];
   bool _loadingContacts = false;
+  
+  // Создаем экземпляр StorageService для работы с Supabase
+  final StorageService _storageService = StorageService();
 
   bool get _isAdmin => widget.chatEntity.isAdmin(widget.currentUser.id);
 
@@ -165,11 +169,17 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     });
 
     try {
-      final storage = FirebaseStorage.instance;
-      final ref = storage.ref().child('chat_images/${widget.chatId}.jpg');
+      // Используем StorageService вместо напрямую Firebase Storage
+      final imageUrl = await _storageService.uploadImage(
+        _selectedImage!, 
+        widget.chatId,
+        specificPath: 'chats/${widget.chatId}/profile/group_avatar.jpg'
+      );
       
-      await ref.putFile(_selectedImage!);
-      final imageUrl = await ref.getDownloadURL();
+      // Проверяем результат загрузки
+      if (imageUrl.isEmpty) {
+        throw Exception('Не удалось загрузить изображение');
+      }
 
       final chatRepository = ChatRepositoryImpl(
         firestore: FirebaseFirestore.instance,
@@ -180,6 +190,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
 
       setState(() {
         _isLoading = false;
+        _selectedImage = null; // Сбрасываем выбранное изображение после успешной загрузки
       });
 
       if (mounted) {
@@ -198,7 +209,12 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1000, // Ограничиваем размер изображения
+        maxHeight: 1000,
+        imageQuality: 85, // Снижаем качество для экономии трафика
+      );
       
       if (pickedFile != null) {
         setState(() {
