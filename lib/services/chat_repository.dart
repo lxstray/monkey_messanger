@@ -15,10 +15,13 @@ abstract class ChatRepository {
   Future<ChatEntity> createGroupChat(String creatorId, String name, List<String> participantIds, {String? imageUrl});
   Future<void> deleteChat(String chatId);
   Future<void> leaveGroupChat(String chatId, String userId);
+  Future<bool> chatExists(String currentUserId, String otherUserId);
   Future<void> addUserToGroupChat(String chatId, String userId);
   Future<void> removeUserFromGroupChat(String chatId, String userId);
   Future<void> updateGroupChatName(String chatId, String newName);
   Future<void> updateGroupChatImage(String chatId, String imageUrl);
+  Future<void> addGroupAdmin(String chatId, String adminId, String userId);
+  Future<void> removeGroupAdmin(String chatId, String adminId, String userId);
   Future<void> markChatAsRead(String chatId, String userId);
   Future<void> updateTypingStatus(String chatId, String userId, bool isTyping);
 

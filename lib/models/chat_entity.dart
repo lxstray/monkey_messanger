@@ -19,6 +19,7 @@ class ChatEntity extends Equatable {
   final DateTime createdAt;
   final String? createdBy;
   final Map<String, bool>? typing; // Map<userId, isTyping>
+  final List<String>? adminIds; // Список администраторов группы
 
   const ChatEntity({
     required this.id,
@@ -33,6 +34,7 @@ class ChatEntity extends Equatable {
     required this.createdAt,
     this.createdBy,
     this.typing,
+    this.adminIds,
   });
 
   // Копирование объекта с возможностью изменения отдельных полей
@@ -49,6 +51,7 @@ class ChatEntity extends Equatable {
     DateTime? createdAt,
     String? createdBy,
     Map<String, bool>? typing,
+    List<String>? adminIds,
   }) {
     return ChatEntity(
       id: id ?? this.id,
@@ -63,6 +66,7 @@ class ChatEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
       typing: typing ?? this.typing,
+      adminIds: adminIds ?? this.adminIds,
     );
   }
 
@@ -82,6 +86,7 @@ class ChatEntity extends Equatable {
       'createdAt': createdAt.millisecondsSinceEpoch,
       'createdBy': createdBy,
       'typing': typing,
+      'adminIds': adminIds,
     };
   }
 
@@ -105,6 +110,15 @@ class ChatEntity extends Equatable {
       return '';
     }
 
+    // Получаем список админов или создаем новый с создателем группы
+    List<String>? adminIds;
+    if (map.containsKey('adminIds') && map['adminIds'] != null) {
+      adminIds = List<String>.from(map['adminIds']);
+    } else if (map['createdBy'] != null) {
+      // Для обратной совместимости создатель всегда админ
+      adminIds = [map['createdBy']];
+    }
+
     return ChatEntity(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
@@ -118,11 +132,17 @@ class ChatEntity extends Equatable {
       createdAt: _parseDateTime(map['createdAt']),
       createdBy: map['createdBy'],
       typing: map['typing'] != null ? Map<String, bool>.from(map['typing']) : null,
+      adminIds: adminIds,
     );
   }
 
-  // Проверка, является ли участник админом группы (создатель чата)
+  // Проверка, является ли участник админом группы
   bool isAdmin(String userId) {
+    // Проверяем новое поле adminIds, если оно есть
+    if (adminIds != null && adminIds!.contains(userId)) {
+      return true;
+    }
+    // Обратная совместимость - создатель всегда админ
     return createdBy == userId;
   }
 
@@ -193,5 +213,6 @@ class ChatEntity extends Equatable {
         createdAt,
         createdBy,
         typing,
+        adminIds,
       ];
 } 

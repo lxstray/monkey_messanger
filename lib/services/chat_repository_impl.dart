@@ -175,11 +175,13 @@ class ChatRepositoryImpl implements ChatRepository {
         'lastMessageText': 'Группа создана',
         'lastMessageTime': now.millisecondsSinceEpoch,
         'lastMessageSenderId': null,
+        'lastMessageType': MessageType.system.index,
         'isGroup': true,
         'unreadMessageCount': unreadMessageCount,
         'createdAt': now.millisecondsSinceEpoch,
         'createdBy': creatorId,
         'typing': typing,
+        'adminIds': [creatorId], // Создатель - первый админ
       };
       
       await _chatDoc(chatId).set(chatData);
@@ -1318,5 +1320,181 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<bool> isChatExists(String currentUserId, String otherUserId) async {
     return await chatExists(currentUserId, otherUserId);
+  }
+
+  @override
+  Future<void> addGroupAdmin(String chatId, String adminId, String userId) async {
+    try {
+      final chatSnapshot = await _chatDoc(chatId).get();
+      
+      if (!chatSnapshot.exists) {
+        throw Exception('Chat does not exist');
+      }
+      
+      final chatData = chatSnapshot.data()!;
+      
+      // Проверяем, является ли чат групповым
+      if (!(chatData['isGroup'] ?? false)) {
+        throw Exception('Cannot add admin to a non-group chat');
+      }
+      
+      // Проверяем, является ли текущий пользователь админом
+      final List<String> adminIds = List<String>.from(chatData['adminIds'] ?? []);
+      final String creatorId = chatData['createdBy'] ?? '';
+      
+      // Если текущий пользователь не админ или не создатель, отклоняем запрос
+      if (!adminIds.contains(adminId) && adminId != creatorId) {
+        throw Exception('Only admins can add new admins');
+      }
+      
+      // Проверяем, есть ли пользователь в группе
+      final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
+      if (!participantIds.contains(userId)) {
+        throw Exception('User is not a member of this chat');
+      }
+      
+      // Проверяем, не является ли пользователь уже админом
+      if (adminIds.contains(userId)) {
+        throw Exception('User is already an admin of this chat');
+      }
+      
+      // Добавляем пользователя в список админов
+      adminIds.add(userId);
+      
+      // Обновляем документ чата
+      await _chatDoc(chatId).update({
+        'adminIds': adminIds,
+      });
+      
+      // Получаем имя нового админа
+      final userSnapshot = await _userDoc(userId).get();
+      final userName = userSnapshot.data()?['name'] ?? 'Пользователь';
+      
+      // Получаем имя назначившего админа
+      final adminSnapshot = await _userDoc(adminId).get();
+      final adminName = adminSnapshot.data()?['name'] ?? 'Администратор';
+      
+      // Добавляем системное сообщение о назначении админа
+      final messageId = _uuid.v4();
+      final now = DateTime.now();
+      
+      // Инициализируем статус прочтения
+      final Map<String, bool> readStatus = {};
+      for (final participantId in participantIds) {
+        readStatus[participantId] = false;
+      }
+      
+      final messageData = {
+        'chatId': chatId,
+        'senderId': '',
+        'text': '$adminName назначил(а) $userName администратором группы',
+        'type': MessageType.system.index,
+        'timestamp': now.millisecondsSinceEpoch,
+        'isEdited': false,
+        'readStatus': readStatus,
+      };
+      
+      await _messageDoc(chatId, messageId).set(messageData);
+      
+      // Обновляем информацию о последнем сообщении
+      await _chatDoc(chatId).update({
+        'lastMessageText': '$adminName назначил(а) $userName администратором группы',
+        'lastMessageTime': now.millisecondsSinceEpoch,
+        'lastMessageSenderId': null,
+        'lastMessageType': MessageType.system.index,
+      });
+    } catch (e, stackTrace) {
+      AppLogger.error('Error adding group admin', e, stackTrace);
+      rethrow;
+    }
+  }
+  
+  @override
+  Future<void> removeGroupAdmin(String chatId, String adminId, String userId) async {
+    try {
+      final chatSnapshot = await _chatDoc(chatId).get();
+      
+      if (!chatSnapshot.exists) {
+        throw Exception('Chat does not exist');
+      }
+      
+      final chatData = chatSnapshot.data()!;
+      
+      // Проверяем, является ли чат групповым
+      if (!(chatData['isGroup'] ?? false)) {
+        throw Exception('Cannot remove admin from a non-group chat');
+      }
+      
+      // Проверяем, является ли текущий пользователь админом
+      final List<String> adminIds = List<String>.from(chatData['adminIds'] ?? []);
+      final String creatorId = chatData['createdBy'] ?? '';
+      
+      // Если текущий пользователь не админ или не создатель, отклоняем запрос
+      if (!adminIds.contains(adminId) && adminId != creatorId) {
+        throw Exception('Only admins can remove admins');
+      }
+      
+      // Проверяем, является ли пользователь админом
+      if (!adminIds.contains(userId)) {
+        throw Exception('User is not an admin of this chat');
+      }
+      
+      // Нельзя удалить привилегии у создателя группы
+      if (userId == creatorId) {
+        throw Exception('Cannot remove creator from admins');
+      }
+      
+      // Удаляем пользователя из списка админов
+      adminIds.remove(userId);
+      
+      // Обновляем документ чата
+      await _chatDoc(chatId).update({
+        'adminIds': adminIds,
+      });
+      
+      // Получаем имя бывшего админа
+      final userSnapshot = await _userDoc(userId).get();
+      final userName = userSnapshot.data()?['name'] ?? 'Пользователь';
+      
+      // Получаем имя удалившего админа
+      final adminSnapshot = await _userDoc(adminId).get();
+      final adminName = adminSnapshot.data()?['name'] ?? 'Администратор';
+      
+      // Получаем список участников
+      final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
+      
+      // Добавляем системное сообщение о снятии админа
+      final messageId = _uuid.v4();
+      final now = DateTime.now();
+      
+      // Инициализируем статус прочтения
+      final Map<String, bool> readStatus = {};
+      for (final participantId in participantIds) {
+        readStatus[participantId] = false;
+      }
+      
+      final messageData = {
+        'chatId': chatId,
+        'senderId': '',
+        'text': '$adminName снял(а) с $userName права администратора',
+        'type': MessageType.system.index,
+        'timestamp': now.millisecondsSinceEpoch,
+        'isEdited': false,
+        'readStatus': readStatus,
+      };
+      
+      await _messageDoc(chatId, messageId).set(messageData);
+      
+      // Обновляем информацию о последнем сообщении
+      await _chatDoc(chatId).update({
+        'lastMessageText': '$adminName снял(а) с $userName права администратора',
+        'lastMessageTime': now.millisecondsSinceEpoch,
+        'lastMessageSenderId': null,
+        'lastMessageType': MessageType.system.index,
+      });
+    } catch (e, stackTrace) {
+      AppLogger.error('Error removing group admin', e, stackTrace);
+      rethrow;
+    }
   }
 } 
