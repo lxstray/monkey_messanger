@@ -120,14 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontSize: 15,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Role: ${currentUser.role}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 13,
-                    ),
-                  ),
+
                   const SizedBox(height: 16),
                   const Divider(color: Colors.white24, height: 0.8),
                   const SizedBox(height: 10),

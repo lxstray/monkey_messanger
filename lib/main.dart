@@ -181,11 +181,6 @@ class MyApp extends StatelessWidget {
                 );
               }
               
-              if (state.isAuthenticated == true) {
-                // Используем экран списка чатов для аутентифицированных пользователей
-                return const ChatListScreen();
-              }
-              
               if (state.isLoading == true) {
                 // Возвращаем загрузочный экран для состояния загрузки
                 return const Scaffold(
@@ -198,6 +193,11 @@ class MyApp extends StatelessWidget {
               // Show 2FA verification screen if required
               if (state.isTwoFactorRequired == true && state.email != null) {
                 return TwoFactorAuthScreen(email: state.email!);
+              }
+              
+              if (state.isAuthenticated == true) {
+                // Используем экран списка чатов для аутентифицированных пользователей
+                return const ChatListScreen();
               }
               
               return const LoginScreen();

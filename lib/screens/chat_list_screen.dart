@@ -349,14 +349,25 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                       return await showDialog(
                         context: context,
                         builder: (BuildContext context) {
+                          final bool isGroup = chat['isGroup'] as bool? ?? false;
+                          final List<String> adminIds = List<String>.from(chat['adminIds'] ?? []);
+                          final String creatorId = chat['createdBy'] as String? ?? '';
+                          final bool isAdmin = currentUser?.id == creatorId || adminIds.contains(currentUser?.id);
+                          
+                          final String title = isGroup && !isAdmin ? 'Выход из группы' : 'Подтверждение';
+                          final String content = isGroup && !isAdmin
+                              ? 'Вы уверены, что хотите покинуть группу "$chatName"?'
+                              : 'Вы уверены, что хотите удалить чат "$chatName"?';
+                          final String actionText = isGroup && !isAdmin ? 'Выйти' : 'Удалить';
+                          
                           return AlertDialog(
                             backgroundColor: const Color(0xFF2A2A2A),
-                            title: const Text(
-                              'Подтверждение',
-                              style: TextStyle(color: Colors.white),
+                            title: Text(
+                              title,
+                              style: const TextStyle(color: Colors.white),
                             ),
                             content: Text(
-                              'Вы уверены, что хотите удалить чат "$chatName"?',
+                              content,
                               style: const TextStyle(color: Colors.white),
                             ),
                             actions: <Widget>[
@@ -369,9 +380,9 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                               ),
                               TextButton(
                                 onPressed: () => Navigator.of(context).pop(true),
-                                child: const Text(
-                                  'Удалить',
-                                  style: TextStyle(color: Colors.red),
+                                child: Text(
+                                  actionText,
+                                  style: const TextStyle(color: Colors.red),
                                 ),
                               ),
                             ],
@@ -386,12 +397,21 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                           storage: FirebaseStorage.instance,
                         );
                         
-                        await chatRepository.deleteChat(chatId);
+                        await chatRepository.deleteOrLeaveChat(chatId, currentUser?.id ?? '');
                         
                         if (context.mounted) {
+                          final bool isGroup = chat['isGroup'] as bool? ?? false;
+                          final List<String> adminIds = List<String>.from(chat['adminIds'] ?? []);
+                          final String creatorId = chat['createdBy'] as String? ?? '';
+                          final bool isAdmin = currentUser?.id == creatorId || adminIds.contains(currentUser?.id);
+                          
+                          final String message = isGroup && !isAdmin 
+                              ? 'Вы покинули группу "$chatName"'
+                              : 'Чат "$chatName" удален';
+                          
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Чат "$chatName" удален'),
+                              content: Text(message),
                               backgroundColor: const Color(0xFF4A90E2),
                               action: SnackBarAction(
                                 label: 'OK',

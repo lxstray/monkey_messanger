@@ -135,7 +135,11 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
   // Показать диалог с тестовым кодом для разработки и тестирования
   void _showTestCode() {
     final emailService = context.read<EmailService>();
-    emailService.sendVerificationCode(widget.email);
+    // emailService.sendVerificationCode(widget.email); // УДАЛЯЕМ ЭТУ СТРОКУ
+    // TODO: Если нужно показывать код в диалоге, получить его от emailService без повторной отправки
+    // Например, emailService.getLastSentCode(widget.email); и показать его в AlertDialog
+    // Пока просто оставим метод пустым или для показа заглушки
+     AppLogger.info('Test code requested for ${widget.email}. Display mechanism needed.');
   }
 
   @override

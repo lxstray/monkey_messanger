@@ -261,6 +261,43 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
+  Future<void> deleteOrLeaveChat(String chatId, String userId) async {
+    try {
+      final chatSnapshot = await _chatDoc(chatId).get();
+      
+      if (!chatSnapshot.exists) {
+        throw Exception('Chat does not exist');
+      }
+      
+      final chatData = chatSnapshot.data()!;
+      
+      // Проверяем, является ли чат групповым
+      final bool isGroup = chatData['isGroup'] ?? false;
+      
+      // Если это не групповой чат, просто удаляем его
+      if (!isGroup) {
+        await deleteChat(chatId);
+        return;
+      }
+      
+      // Если это групповой чат, проверяем права админа
+      final List<String> adminIds = List<String>.from(chatData['adminIds'] ?? []);
+      final String creatorId = chatData['createdBy'] ?? '';
+      
+      // Если пользователь админ или создатель, удаляем чат
+      if (userId == creatorId || adminIds.contains(userId)) {
+        await deleteChat(chatId);
+      } else {
+        // Если пользователь не админ, просто выходим из группы
+        await leaveGroupChat(chatId, userId);
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error('Error deleting or leaving chat', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> leaveGroupChat(String chatId, String userId) async {
     try {
       final chatSnapshot = await _chatDoc(chatId).get();

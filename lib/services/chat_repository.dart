@@ -14,6 +14,7 @@ abstract class ChatRepository {
   Future<ChatEntity> createPrivateChat(String currentUserId, String otherUserId);
   Future<ChatEntity> createGroupChat(String creatorId, String name, List<String> participantIds, {String? imageUrl});
   Future<void> deleteChat(String chatId);
+  Future<void> deleteOrLeaveChat(String chatId, String userId);
   Future<void> leaveGroupChat(String chatId, String userId);
   Future<bool> chatExists(String currentUserId, String otherUserId);
   Future<void> addUserToGroupChat(String chatId, String userId);
