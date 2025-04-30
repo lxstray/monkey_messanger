@@ -16,10 +16,10 @@ class StorageService {
   final _imageHelper = ImageHelper();
 
   // Загрузка изображения в Supabase Storage с оптимизацией
-  Future<String> uploadImage(File file, String chatId) async {
+  Future<String> uploadImage(File file, String contextId, {String? specificPath}) async {
     try {
-      final fileName = '${_uuid.v4()}.jpg';
-      final filePath = 'chats/$chatId/images/$fileName';
+      final fileName = '${_uuid.v4()}${path.extension(file.path)}';
+      final filePath = specificPath ?? 'chats/$contextId/images/$fileName';
       
       // Компрессия изображения перед загрузкой
       final compressedFile = await _compressImage(file);

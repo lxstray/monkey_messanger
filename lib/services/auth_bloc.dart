@@ -176,19 +176,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthUpdateUserEvent event,
     Emitter<AuthState> emit,
   ) async {
-    if (state.user == null) return;
+    // Ensure user is not null before proceeding
+    final currentUser = state.user;
+    if (currentUser == null) {
+      AppLogger.warning('Attempted to update user but state.user was null.');
+      return; // Exit if user is null
+    }
     
     emit(AuthState.loading());
     try {
-      final updatedUser = state.user!.copyWith(
-        name: event.name ?? state.user!.name,
-        photoUrl: event.photoUrl ?? state.user!.photoUrl,
+      // Use currentUser which is guaranteed non-null here
+      final updatedUser = currentUser.copyWith(
+        // Provide default empty string if event.name and currentUser.name are null
+        name: event.name ?? currentUser.name ?? '', 
+        // Use event.photoUrl if available, otherwise keep existing (could be null)
+        photoUrl: event.photoUrl ?? currentUser.photoUrl, 
       );
       
       await _authRepository.updateUserData(updatedUser);
       
-      // Fetch updated user data
-      await _fetchAndEmitUserData();
+      // Fetch updated user data to ensure the state is consistent
+      await _fetchAndEmitUserData(); 
+      
     } catch (e, stackTrace) {
       AppLogger.error('Error updating user', e, stackTrace);
       emit(AuthState.error('An error occurred while updating your profile. Please try again.'));
