@@ -25,6 +25,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:monkey_messanger/models/chat_entity.dart';
 import 'package:monkey_messanger/screens/group_chat_settings_screen.dart';
+import 'package:monkey_messanger/services/chat_repository_impl.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -50,6 +52,13 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isUploading = false;
   bool _isDownloading = false;
   
+  // Репозиторий чата для получения обновлений
+  late final ChatRepositoryImpl _chatRepository;
+  // Поток обновлений чата
+  Stream<ChatEntity?>? _chatStream;
+  // Текущие данные чата
+  ChatEntity? _currentChatEntity;
+  
   // Переменные для работы с голосовыми сообщениями
   final _audioRecorder = AudioRecorder();
   final _audioPlayer = AudioPlayer();
@@ -65,13 +74,18 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _initAudioRecorder();
-    // Теперь загрузка сообщений происходит в chat_list_screen
-    // перед переходом на этот экран, поэтому комментируем этот код
-    // Future.delayed(const Duration(milliseconds: 100), () {
-    //   if (mounted) {
-    //     context.read<ChatBloc>().add(LoadMessagesEvent(widget.chatId));
-    //   }
-    // });
+    
+    // Инициализируем репозиторий
+    _chatRepository = ChatRepositoryImpl(
+      firestore: FirebaseFirestore.instance,
+      storage: FirebaseStorage.instance,
+    );
+    
+    // Подписываемся на обновления чата
+    _chatStream = _chatRepository.getChatById(widget.chatId);
+    
+    // Загружаем сообщения
+    context.read<ChatBloc>().add(LoadMessagesEvent(widget.chatId));
   }
   
   // Инициализация рекордера
@@ -317,27 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF2A2A2A),
-        title: Text(
-          widget.chatName,
-          style: const TextStyle(color: Colors.white, fontSize: 18),
-        ),
-        actions: [
-          BlocBuilder<ChatBloc, ChatState>(
-            builder: (context, state) {
-              if (state is ChatLoaded && state.chat != null && state.chat!.isGroup) {
-                return IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white, size: 24),
-                  padding: const EdgeInsets.only(right: 12),
-                  onPressed: () => _openGroupSettings(context, state.chat!),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: BlocConsumer<ChatBloc, ChatState>(
         listener: (context, state) {
           if (state is ChatError) {
@@ -406,14 +400,14 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _openGroupSettings(BuildContext context, ChatEntity chatEntity) {
+  void _openGroupSettings(BuildContext context, ChatEntity chat) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GroupChatSettingsScreen(
           chatId: widget.chatId,
           currentUser: widget.currentUser,
-          chatEntity: chatEntity,
+          chatEntity: chat,
         ),
       ),
     );
@@ -1321,5 +1315,46 @@ class _ChatScreenState extends State<ChatScreen> {
     _audioRecorder.dispose();
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  // Отдельный метод для построения AppBar, который обновляется вместе с обновлениями чата
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: const Color(0xFF2A2A2A),
+      title: StreamBuilder<ChatEntity?>(
+        stream: _chatStream,
+        initialData: null,
+        builder: (context, snapshot) {
+          // Сохраняем последнее известное состояние чата
+          if (snapshot.hasData) {
+            _currentChatEntity = snapshot.data;
+          }
+          
+          // Используем текущие данные чата или переданное имя
+          final displayName = _currentChatEntity?.name ?? widget.chatName;
+          
+          return Text(
+            displayName,
+            style: const TextStyle(color: Colors.white, fontSize: 18),
+          );
+        },
+      ),
+      actions: [
+        StreamBuilder<ChatEntity?>(
+          stream: _chatStream,
+          initialData: null,
+          builder: (context, snapshot) {
+            if (snapshot.hasData && snapshot.data?.isGroup == true) {
+              return IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white, size: 24),
+                padding: const EdgeInsets.only(right: 12),
+                onPressed: () => _openGroupSettings(context, snapshot.data!),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+      ],
+    );
   }
 } 

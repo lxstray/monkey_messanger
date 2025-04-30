@@ -32,24 +32,52 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
   String? _errorMessage;
   List<UserEntity> _chatParticipants = [];
   final TextEditingController _groupNameController = TextEditingController();
+  final FocusNode _groupNameFocusNode = FocusNode();
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
   List<ContactEntity> _userContacts = [];
   bool _loadingContacts = false;
   
+  // Создаем экземпляр репозитория чата
+  late final ChatRepositoryImpl _chatRepository;
+  // Подписка на обновления чата
+  Stream<ChatEntity?>? _chatStream;
+  // Текущие данные чата
+  ChatEntity? _currentChatEntity;
+  
   // Создаем экземпляр StorageService для работы с Supabase
   final StorageService _storageService = StorageService();
 
-  bool get _isAdmin => widget.chatEntity.isAdmin(widget.currentUser.id);
+  bool get _isAdmin => (_currentChatEntity ?? widget.chatEntity).isAdmin(widget.currentUser.id);
 
   @override
   void initState() {
     super.initState();
+    _chatRepository = ChatRepositoryImpl(
+      firestore: FirebaseFirestore.instance,
+      storage: FirebaseStorage.instance,
+    );
+    
+    // Инициализируем начальные данные
+    _currentChatEntity = widget.chatEntity;
     _groupNameController.text = widget.chatEntity.name;
+    
+    // Подписываемся на обновления чата
+    _chatStream = _chatRepository.getChatById(widget.chatId);
+    
+    // Загружаем первоначальные данные
     _loadChatParticipants();
+    
     if (_isAdmin) {
       _loadUserContacts();
     }
+  }
+  
+  @override
+  void dispose() {
+    _groupNameController.dispose();
+    _groupNameFocusNode.dispose();
+    super.dispose();
   }
   
   // Загрузка контактов пользователя
@@ -92,7 +120,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       final usersCollection = firestoreInstance.collection('users');
       _chatParticipants = [];
 
-      for (final userId in widget.chatEntity.participantIds) {
+      for (final userId in (_currentChatEntity ?? widget.chatEntity).participantIds) {
         final userDoc = await usersCollection.doc(userId).get();
         if (userDoc.exists) {
           final userData = userDoc.data()!;
@@ -120,7 +148,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       return;
     }
 
-    if (_groupNameController.text.trim() == widget.chatEntity.name) {
+    if (_groupNameController.text.trim() == (_currentChatEntity ?? widget.chatEntity).name) {
       return; // Имя не изменилось
     }
 
@@ -130,12 +158,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     });
 
     try {
-      final chatRepository = ChatRepositoryImpl(
-        firestore: FirebaseFirestore.instance,
-        storage: FirebaseStorage.instance,
-      );
-
-      await chatRepository.updateGroupChatName(
+      await _chatRepository.updateGroupChatName(
         widget.chatId,
         _groupNameController.text.trim(),
       );
@@ -181,12 +204,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
         throw Exception('Не удалось загрузить изображение');
       }
 
-      final chatRepository = ChatRepositoryImpl(
-        firestore: FirebaseFirestore.instance,
-        storage: FirebaseStorage.instance,
-      );
-
-      await chatRepository.updateGroupChatImage(widget.chatId, imageUrl);
+      await _chatRepository.updateGroupChatImage(widget.chatId, imageUrl);
 
       setState(() {
         _isLoading = false;
@@ -281,12 +299,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     });
 
     try {
-      final chatRepository = ChatRepositoryImpl(
-        firestore: FirebaseFirestore.instance,
-        storage: FirebaseStorage.instance,
-      );
-
-      await chatRepository.removeUserFromGroupChat(widget.chatId, userId);
+      await _chatRepository.removeUserFromGroupChat(widget.chatId, userId);
 
       // Обновляем список участников
       await _loadChatParticipants();
@@ -315,7 +328,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     }
     
     // Проверяем, не является ли пользователь создателем группы
-    if (userId == widget.chatEntity.createdBy) {
+    if (userId == (_currentChatEntity ?? widget.chatEntity).createdBy) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Невозможно изменить права создателя группы')),
       );
@@ -367,15 +380,10 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     });
 
     try {
-      final chatRepository = ChatRepositoryImpl(
-        firestore: FirebaseFirestore.instance,
-        storage: FirebaseStorage.instance,
-      );
-
       if (makeAdmin) {
-        await chatRepository.addGroupAdmin(widget.chatId, widget.currentUser.id, userId);
+        await _chatRepository.addGroupAdmin(widget.chatId, widget.currentUser.id, userId);
       } else {
-        await chatRepository.removeGroupAdmin(widget.chatId, widget.currentUser.id, userId);
+        await _chatRepository.removeGroupAdmin(widget.chatId, widget.currentUser.id, userId);
       }
 
       // Для простоты обновляем весь объект чата через навигацию
@@ -424,7 +432,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     }
     
     final List<ContactEntity> availableContacts = _userContacts.where((contact) {
-      return !widget.chatEntity.participantIds.contains(contact.contactId);
+      return !(_currentChatEntity ?? widget.chatEntity).participantIds.contains(contact.contactId);
     }).toList();
     
     if (availableContacts.isEmpty) {
@@ -534,12 +542,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     });
 
     try {
-      final chatRepository = ChatRepositoryImpl(
-        firestore: FirebaseFirestore.instance,
-        storage: FirebaseStorage.instance,
-      );
-
-      await chatRepository.addUserToGroupChat(widget.chatId, selectedContact.contactId);
+      await _chatRepository.addUserToGroupChat(widget.chatId, selectedContact.contactId);
 
       // Обновляем список участников
       await _loadChatParticipants();
@@ -601,12 +604,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     });
 
     try {
-      final chatRepository = ChatRepositoryImpl(
-        firestore: FirebaseFirestore.instance,
-        storage: FirebaseStorage.instance,
-      );
-
-      await chatRepository.leaveGroupChat(widget.chatId, widget.currentUser.id);
+      await _chatRepository.leaveGroupChat(widget.chatId, widget.currentUser.id);
 
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -635,366 +633,438 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF4A90E2),
+      body: StreamBuilder<ChatEntity?>(
+        stream: _chatStream,
+        initialData: widget.chatEntity,
+        builder: (context, snapshot) {
+          // Обновляем текущие данные чата при получении новых данных
+          if (snapshot.hasData && snapshot.data != null) {
+            _currentChatEntity = snapshot.data;
+            
+            // Обновляем список участников если состав изменился
+            if (!_isLoading && !_participantsMatch(snapshot.data!.participantIds)) {
+              // Отложенное обновление списка участников, чтобы избежать вызова setState во время построения
+              Future.microtask(() => _loadChatParticipants());
+            }
+            
+            // Обновляем поле названия чата, только если пользователь не редактирует его сейчас
+            if (!_groupNameFocusNode.hasFocus && _groupNameController.text != snapshot.data!.name) {
+              _groupNameController.text = snapshot.data!.name;
+            }
+          }
+          
+          // В случае ошибки потока, показываем ошибку
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Ошибка загрузки данных чата: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          
+          return _buildBody();
+        },
+      ),
+    );
+  }
+  
+  // Проверяем, соответствуют ли текущие участники в списке новому списку из чата
+  bool _participantsMatch(List<String> newParticipantIds) {
+    if (newParticipantIds.length != _chatParticipants.length) {
+      return false;
+    }
+    
+    final currentParticipantIds = _chatParticipants.map((user) => user.id).toList();
+    for (final id in newParticipantIds) {
+      if (!currentParticipantIds.contains(id)) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF4A90E2),
+        ),
+      );
+    }
+    
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 40,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadChatParticipants,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                ),
+                child: const Text('Повторить', style: TextStyle(fontSize: 14)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Изображение группы
+          Center(
+            child: GestureDetector(
+              onTap: _isAdmin ? _pickImage : null,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 45,
+                    backgroundColor: const Color(0xFF4A90E2),
+                    backgroundImage: _selectedImage != null
+                        ? FileImage(_selectedImage!)
+                        : (_currentChatEntity ?? widget.chatEntity).imageUrl != null
+                            ? NetworkImage((_currentChatEntity ?? widget.chatEntity).imageUrl!) as ImageProvider<Object>
+                            : null,
+                    child: (_currentChatEntity ?? widget.chatEntity).imageUrl == null && _selectedImage == null
+                        ? Text(
+                            (_currentChatEntity ?? widget.chatEntity).name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 36,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                  if (_isAdmin)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF4A90E2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Название группы
+          if (_isAdmin)
+            TextField(
+              controller: _groupNameController,
+              focusNode: _groupNameFocusNode,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              decoration: InputDecoration(
+                labelText: 'Название группы',
+                labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white70),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF4A90E2)),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.save, color: Color(0xFF4A90E2), size: 22),
+                  onPressed: _updateGroupName,
+                ),
               ),
             )
-          : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 40,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontSize: 14),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: _loadChatParticipants,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4A90E2),
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                          ),
-                          child: const Text('Повторить', style: TextStyle(fontSize: 14)),
-                        ),
-                      ],
-                    ),
+          else
+            Card(
+              color: const Color(0xFF2A2A2A),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                title: const Text(
+                  'Название группы',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                subtitle: Text(
+                  (_currentChatEntity ?? widget.chatEntity).name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+
+          // Создатель группы
+          Card(
+            color: const Color(0xFF2A2A2A),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              title: const Text(
+                'Создатель группы',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              subtitle: FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc((_currentChatEntity ?? widget.chatEntity).createdBy)
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Text(
+                      'Загрузка...',
+                      style: TextStyle(color: Colors.white, fontSize: 15),
+                    );
+                  }
+                  
+                  if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+                    return const Text(
+                      'Неизвестно',
+                      style: TextStyle(color: Colors.white, fontSize: 15),
+                    );
+                  }
+                  
+                  final data = snapshot.data!.data() as Map<String, dynamic>;
+                  return Text(
+                    data['name'] ?? 'Неизвестно',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Список участников
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Участники',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_isAdmin)
+                IconButton(
+                  icon: const Icon(Icons.person_add, color: Color(0xFF4A90E2), size: 22),
+                  onPressed: _addUserToGroup,
+                  tooltip: 'Добавить участника',
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _chatParticipants.length,
+            itemBuilder: (context, index) {
+              final participant = _chatParticipants[index];
+              final isCreator = participant.id == (_currentChatEntity ?? widget.chatEntity).createdBy;
+              // Проверяем, является ли пользователь админом
+              final isParticipantAdmin = (_currentChatEntity ?? widget.chatEntity).isAdmin(participant.id);
+              
+              return Card(
+                color: const Color(0xFF2A2A2A),
+                margin: const EdgeInsets.symmetric(vertical: 3),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  leading: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFF4A90E2),
+                    backgroundImage: participant.photoUrl != null
+                        ? NetworkImage(participant.photoUrl!)
+                        : null,
+                    child: participant.photoUrl == null
+                        ? Text(
+                            participant.name.isNotEmpty ? participant.name.substring(0, 1).toUpperCase() : '?',
+                            style: const TextStyle(color: Colors.white, fontSize: 16),
+                          )
+                        : null,
+                  ),
+                  title: Row(
                     children: [
-                      // Изображение группы
-                      Center(
-                        child: GestureDetector(
-                          onTap: _isAdmin ? _pickImage : null,
-                          child: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 45,
-                                backgroundColor: const Color(0xFF4A90E2),
-                                backgroundImage: _selectedImage != null
-                                    ? FileImage(_selectedImage!)
-                                    : widget.chatEntity.imageUrl != null
-                                        ? NetworkImage(widget.chatEntity.imageUrl!) as ImageProvider<Object>
-                                        : null,
-                                child: widget.chatEntity.imageUrl == null && _selectedImage == null
-                                    ? Text(
-                                        widget.chatEntity.name.substring(0, 1).toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 36,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              if (_isAdmin)
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(3),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF4A90E2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                      Text(
+                        participant.name,
+                        style: const TextStyle(color: Colors.white, fontSize: 15),
                       ),
-                      const SizedBox(height: 12),
-
-                      // Название группы
-                      if (_isAdmin)
-                        TextField(
-                          controller: _groupNameController,
-                          style: const TextStyle(color: Colors.white, fontSize: 15),
-                          decoration: InputDecoration(
-                            labelText: 'Название группы',
-                            labelStyle: const TextStyle(color: Colors.white70, fontSize: 14),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white70),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF4A90E2)),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.save, color: Color(0xFF4A90E2), size: 22),
-                              onPressed: _updateGroupName,
-                            ),
-                          ),
-                        )
-                      else
-                        Card(
-                          color: const Color(0xFF2A2A2A),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            title: const Text(
-                              'Название группы',
-                              style: TextStyle(color: Colors.white70, fontSize: 13),
-                            ),
-                            subtitle: Text(
-                              widget.chatEntity.name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-
-                      // Создатель группы
-                      Card(
-                        color: const Color(0xFF2A2A2A),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          title: const Text(
-                            'Создатель группы',
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                          subtitle: FutureBuilder<DocumentSnapshot>(
-                            future: FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(widget.chatEntity.createdBy)
-                                .get(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Text(
-                                  'Загрузка...',
-                                  style: TextStyle(color: Colors.white, fontSize: 15),
-                                );
-                              }
-                              
-                              if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-                                return const Text(
-                                  'Неизвестно',
-                                  style: TextStyle(color: Colors.white, fontSize: 15),
-                                );
-                              }
-                              
-                              final data = snapshot.data!.data() as Map<String, dynamic>;
-                              return Text(
-                                data['name'] ?? 'Неизвестно',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Список участников
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Участники',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (_isAdmin)
-                            IconButton(
-                              icon: const Icon(Icons.person_add, color: Color(0xFF4A90E2), size: 22),
-                              onPressed: _addUserToGroup,
-                              tooltip: 'Добавить участника',
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _chatParticipants.length,
-                        itemBuilder: (context, index) {
-                          final participant = _chatParticipants[index];
-                          final isCreator = participant.id == widget.chatEntity.createdBy;
-                          // Проверяем, является ли пользователь админом
-                          final isParticipantAdmin = widget.chatEntity.isAdmin(participant.id);
-                          
-                          return Card(
-                            color: const Color(0xFF2A2A2A),
-                            margin: const EdgeInsets.symmetric(vertical: 3),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              leading: CircleAvatar(
-                                radius: 20,
-                                backgroundColor: const Color(0xFF4A90E2),
-                                backgroundImage: participant.photoUrl != null
-                                    ? NetworkImage(participant.photoUrl!)
-                                    : null,
-                                child: participant.photoUrl == null
-                                    ? Text(
-                                        participant.name.isNotEmpty ? participant.name.substring(0, 1).toUpperCase() : '?',
-                                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                                      )
-                                    : null,
-                              ),
-                              title: Row(
-                                children: [
-                                  Text(
-                                    participant.name,
-                                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                                  ),
-                                  if (isParticipantAdmin)
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 6.0),
-                                      child: Icon(
-                                        isCreator ? Icons.star : Icons.admin_panel_settings,
-                                        color: isCreator ? Colors.yellow : Colors.green,
-                                        size: 14,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              subtitle: Text(
-                                participant.email,
-                                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
-                              ),
-                              // Меню действий для администраторов
-                              trailing: participant.id != widget.currentUser.id && _isAdmin
-                                  ? PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
-                                      onSelected: (value) {
-                                        if (value == 'remove') {
-                                          _removeUserFromGroup(participant.id);
-                                        } else if (value == 'make_admin') {
-                                          _toggleUserAdmin(participant.id, true);
-                                        } else if (value == 'remove_admin') {
-                                          _toggleUserAdmin(participant.id, false);
-                                        }
-                                      },
-                                      itemBuilder: (context) {
-                                        final items = <PopupMenuEntry<String>>[];
-                                        
-                                        // Опция для назначения/снятия админа
-                                        if (!isCreator) { // Создателя нельзя менять
-                                          if (isParticipantAdmin) {
-                                            items.add(
-                                              const PopupMenuItem<String>(
-                                                value: 'remove_admin',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.person_remove, color: Colors.red, size: 18),
-                                                    SizedBox(width: 8),
-                                                    Text('Снять админа', style: TextStyle(color: Colors.white, fontSize: 14)),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          } else {
-                                            items.add(
-                                              const PopupMenuItem<String>(
-                                                value: 'make_admin',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.admin_panel_settings, color: Colors.green, size: 18),
-                                                    SizedBox(width: 8),
-                                                    Text('Сделать админом', style: TextStyle(color: Colors.white, fontSize: 14)),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                          
-                                          // Добавляем разделитель
-                                          if (items.isNotEmpty) {
-                                            items.add(const PopupMenuDivider());
-                                          }
-                                        }
-                                        
-                                        // Опция для удаления участника
-                                        if (!isCreator) { // Создателя нельзя удалить
-                                          items.add(
-                                            const PopupMenuItem<String>(
-                                              value: 'remove',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.delete, color: Colors.red, size: 18),
-                                                  SizedBox(width: 8),
-                                                  Text('Удалить из группы', style: TextStyle(color: Colors.white, fontSize: 14)),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        
-                                        return items;
-                                      },
-                                      color: const Color(0xFF333333),
-                                    )
-                                  : null,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Кнопка "Покинуть группу"
-                      Center(
-                        child: ElevatedButton.icon(
-                          onPressed: _leaveGroup,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                          ),
-                          icon: const Icon(Icons.exit_to_app, size: 20),
-                          label: const Text('Покинуть группу', style: TextStyle(fontSize: 15)),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Если выбрано изображение, добавляем кнопку "Сохранить изображение"
-                      if (_selectedImage != null && _isAdmin)
-                        Center(
-                          child: ElevatedButton.icon(
-                            onPressed: _updateGroupImage,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4A90E2),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 10,
-                              ),
-                            ),
-                            icon: const Icon(Icons.save, size: 20),
-                            label: const Text('Сохранить изображение', style: TextStyle(fontSize: 15)),
+                      if (isParticipantAdmin)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6.0),
+                          child: Icon(
+                            isCreator ? Icons.star : Icons.admin_panel_settings,
+                            color: isCreator ? Colors.yellow : Colors.green,
+                            size: 14,
                           ),
                         ),
                     ],
                   ),
+                  subtitle: Text(
+                    participant.email,
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                  ),
+                  // Меню действий для администраторов
+                  trailing: participant.id != widget.currentUser.id && _isAdmin
+                      ? PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
+                          onSelected: (value) {
+                            if (value == 'remove') {
+                              _removeUserFromGroup(participant.id);
+                            } else if (value == 'make_admin') {
+                              _toggleUserAdmin(participant.id, true);
+                            } else if (value == 'remove_admin') {
+                              _toggleUserAdmin(participant.id, false);
+                            }
+                          },
+                          itemBuilder: (context) {
+                            final items = <PopupMenuEntry<String>>[];
+                            
+                            // Опция для назначения/снятия админа
+                            if (!isCreator) { // Создателя нельзя менять
+                              if (isParticipantAdmin) {
+                                items.add(
+                                  const PopupMenuItem<String>(
+                                    value: 'remove_admin',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.person_remove, color: Colors.red, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Снять админа', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                items.add(
+                                  const PopupMenuItem<String>(
+                                    value: 'make_admin',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.admin_panel_settings, color: Colors.green, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Сделать админом', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                              
+                              // Добавляем разделитель
+                              if (items.isNotEmpty) {
+                                items.add(const PopupMenuDivider());
+                              }
+                            }
+                            
+                            // Опция для удаления участника
+                            if (!isCreator) { // Создателя нельзя удалить
+                              items.add(
+                                const PopupMenuItem<String>(
+                                  value: 'remove',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete, color: Colors.red, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('Удалить из группы', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                            
+                            return items;
+                          },
+                          color: const Color(0xFF333333),
+                        )
+                      : null,
                 ),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+
+          // Кнопка "Покинуть группу"
+          Center(
+            child: ElevatedButton.icon(
+              onPressed: _leaveGroup,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+              ),
+              icon: const Icon(Icons.exit_to_app, size: 20),
+              label: const Text('Покинуть группу', style: TextStyle(fontSize: 15)),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Если выбрано изображение, добавляем кнопку "Сохранить изображение"
+          if (_selectedImage != null && _isAdmin)
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _updateGroupImage,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                ),
+                icon: const Icon(Icons.save, size: 20),
+                label: const Text('Сохранить изображение', style: TextStyle(fontSize: 15)),
+              ),
+            ),
+        ],
+      ),
     );
   }
 } 

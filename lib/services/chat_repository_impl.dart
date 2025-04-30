@@ -70,10 +70,10 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Stream<ChatEntity?> getChatById(String chatId) {
     return _chatDoc(chatId).snapshots().map((snapshot) {
-      if (snapshot.exists) {
-        return ChatEntity.fromMap({...snapshot.data()!, 'id': snapshot.id});
+      if (!snapshot.exists) {
+        return null;
       }
-      return null;
+      return ChatEntity.fromMap({...snapshot.data()!, 'id': snapshot.id});
     });
   }
 
