@@ -195,8 +195,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       // Используем StorageService вместо напрямую Firebase Storage
       final imageUrl = await _storageService.uploadImage(
         _selectedImage!, 
-        widget.chatId,
-        specificPath: 'chats/${widget.chatId}/profile/group_avatar.jpg'
+        widget.chatId
       );
       
       // Проверяем результат загрузки

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
-import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/email_service.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
 
@@ -134,11 +133,6 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
 
   // Показать диалог с тестовым кодом для разработки и тестирования
   void _showTestCode() {
-    final emailService = context.read<EmailService>();
-    // emailService.sendVerificationCode(widget.email); // УДАЛЯЕМ ЭТУ СТРОКУ
-    // TODO: Если нужно показывать код в диалоге, получить его от emailService без повторной отправки
-    // Например, emailService.getLastSentCode(widget.email); и показать его в AlertDialog
-    // Пока просто оставим метод пустым или для показа заглушки
      AppLogger.info('Test code requested for ${widget.email}. Display mechanism needed.');
   }
 

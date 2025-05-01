@@ -1,9 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/app_logger.dart';
 import '../utils/supabase_config.dart';
@@ -50,17 +47,17 @@ class StorageService {
         throw Exception('Получен пустой URL после загрузки изображения');
       }
       
-      // Проверяем доступность изображения
-      final isValid = await _imageHelper.isImageUrlValid(imageUrl);
-      if (!isValid) {
-        AppLogger.error('Image URL is not valid after upload: $imageUrl', null, StackTrace.current);
-        return '';
-      }
+      // Убрана проверка доступности изображения через isImageUrlValid, так как она может вызывать ошибки из-за задержек в хранилище
+      // final isValid = await _imageHelper.isImageUrlValid(imageUrl);
+      // if (!isValid) {
+      //   AppLogger.error('Image URL is not valid after upload: $imageUrl', null, StackTrace.current);
+      //   return '';
+      // }
       
       // Предзагружаем изображение в кэш
       await _imageHelper.preloadImage(imageUrl);
       
-      AppLogger.info('Image uploaded and validated successfully: $filePath, URL: $imageUrl');
+      AppLogger.info('Image uploaded successfully: $filePath, URL: $imageUrl');
       return imageUrl;
     } catch (e) {
       AppLogger.error('Failed to upload image', e, StackTrace.current);

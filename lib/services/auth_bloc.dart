@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:monkey_messanger/models/user_entity.dart';
 import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/auth_repository.dart';
 import 'package:monkey_messanger/services/auth_state.dart';

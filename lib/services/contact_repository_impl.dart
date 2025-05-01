@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:monkey_messanger/models/contact_entity.dart';
 import 'package:monkey_messanger/models/user_entity.dart';
 import 'package:monkey_messanger/services/contact_repository.dart';
-import 'package:monkey_messanger/utils/app_constants.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
 import 'package:uuid/uuid.dart';
 

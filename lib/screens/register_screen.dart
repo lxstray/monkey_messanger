@@ -3,9 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
 import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/auth_state.dart';
-import 'package:monkey_messanger/screens/login_screen.dart';
 import 'package:monkey_messanger/utils/app_colors.dart';
-import 'package:monkey_messanger/utils/app_constants.dart';
 import 'package:monkey_messanger/widgets/custom_text_field.dart';
 import 'package:monkey_messanger/widgets/social_login_button.dart';
 

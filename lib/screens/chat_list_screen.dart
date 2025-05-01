@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
-import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/auth_state.dart';
 import 'package:monkey_messanger/screens/chat_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

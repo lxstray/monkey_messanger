@@ -8,7 +8,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:monkey_messanger/services/storage_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
 import 'package:monkey_messanger/utils/image_helper.dart';
 import 'package:http/http.dart' as http;

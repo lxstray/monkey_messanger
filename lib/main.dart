@@ -16,14 +16,12 @@ import 'package:monkey_messanger/utils/supabase_config.dart';
 import 'package:monkey_messanger/services/auth_repository_impl.dart';
 import 'package:monkey_messanger/services/auth_repository.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
-import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/auth_state.dart' as app_auth;
 import 'package:monkey_messanger/services/chat_bloc.dart';
 import 'package:monkey_messanger/screens/login_screen.dart';
 import 'package:monkey_messanger/screens/chat_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
-import 'package:cached_network_image/cached_network_image.dart';
 
 import 'firebase_options.dart';
 

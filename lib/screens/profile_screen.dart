@@ -4,7 +4,6 @@ import 'package:monkey_messanger/services/auth_bloc.dart';
 import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:monkey_messanger/services/storage_service.dart';
-import 'package:monkey_messanger/utils/supabase_config.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
