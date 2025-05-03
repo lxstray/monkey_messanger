@@ -65,6 +65,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   late encrypt.IV _iv;
   bool _isEncryptionReady = false;
 
+  // Фиксированные значения ключей
+  static const String _fixedKeyString = 'MonkeyMessengerFixedEncryptionKey123';
+  static const String _fixedIvString = 'MonkeyMsgFixedIV';
+
   ChatBloc() : super(ChatInitial()) {
     on<LoadMessagesEvent>(_onLoadMessages);
     on<SendMessageEvent>(_onSendMessage);
@@ -75,33 +79,23 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   // Инициализация ключей шифрования
   Future<void> _initEncryption() async {
     try {
+      // Используем фиксированные ключи вместо случайной генерации
+      _encryptionKey = encrypt.Key(utf8.encode(_fixedKeyString).sublist(0, 32));
+      _iv = encrypt.IV(utf8.encode(_fixedIvString).sublist(0, 16));
+      
+      // Сохраняем ключи в SharedPreferences для совместимости с существующим кодом
       final prefs = await SharedPreferences.getInstance();
-      
-      // Получаем или создаем ключ шифрования
-      String? storedKey = prefs.getString('encryption_key');
-      String? storedIv = prefs.getString('encryption_iv');
-      
-      if (storedKey != null && storedIv != null) {
-        // Используем сохраненные ключи
-        _encryptionKey = encrypt.Key(base64Decode(storedKey));
-        _iv = encrypt.IV(base64Decode(storedIv));
-      } else {
-        // Создаем новые ключи и сохраняем их
-        _encryptionKey = encrypt.Key.fromSecureRandom(32);
-        _iv = encrypt.IV.fromSecureRandom(16);
-        
-        await prefs.setString('encryption_key', base64Encode(_encryptionKey.bytes));
-        await prefs.setString('encryption_iv', base64Encode(_iv.bytes));
-      }
+      await prefs.setString('encryption_key', base64Encode(_encryptionKey.bytes));
+      await prefs.setString('encryption_iv', base64Encode(_iv.bytes));
       
       _isEncryptionReady = true;
-      AppLogger.info('Encryption initialized successfully');
+      AppLogger.info('Encryption initialized successfully with fixed keys');
     } catch (e) {
       AppLogger.error('Failed to initialize encryption', e, StackTrace.current);
       _isEncryptionReady = false;
-      // Создаем временные ключи для текущей сессии
-      _encryptionKey = encrypt.Key.fromLength(32);
-      _iv = encrypt.IV.fromLength(16);
+      // Создаем ключи из фиксированных строк в случае ошибки
+      _encryptionKey = encrypt.Key(utf8.encode(_fixedKeyString).sublist(0, 32));
+      _iv = encrypt.IV(utf8.encode(_fixedIvString).sublist(0, 16));
     }
   }
 
