@@ -1,4 +1,5 @@
 /email_service/node_modules/
+/email_service/.env
 
 # Miscellaneous
 *.class
