@@ -16,6 +16,7 @@ import 'package:monkey_messanger/models/message_entity.dart';
 import 'package:monkey_messanger/models/user_entity.dart';
 import 'package:monkey_messanger/screens/profile_screen.dart';
 import 'package:monkey_messanger/screens/contacts_screen.dart';
+import 'package:monkey_messanger/utils/app_constants.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -93,6 +94,7 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     final authState = context.read<AuthBloc>().state;
     final currentUser = authState.user;
+    final bool isAdmin = currentUser?.role == AppConstants.adminRole;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),

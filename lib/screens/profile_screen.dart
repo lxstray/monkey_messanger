@@ -7,6 +7,7 @@ import 'package:monkey_messanger/services/storage_service.dart';
 import 'package:monkey_messanger/utils/app_logger.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'package:monkey_messanger/utils/app_constants.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,7 +23,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = context.read<AuthBloc>().state.user;
+    final authState = context.read<AuthBloc>().state;
+    final currentUser = authState.user;
+    final bool isAdmin = currentUser?.role == AppConstants.adminRole;
 
     return currentUser == null
         ? const Center(
@@ -141,6 +144,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 16),
                   const Divider(color: Colors.white24, height: 0.8),
                   const SizedBox(height: 12),
+                  
+                  if (isAdmin)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.admin_panel_settings,
+                        color: Colors.orange,
+                        size: 22,
+                      ),
+                      title: const Text(
+                        'Панель администратора',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white70,
+                        size: 16,
+                      ),
+                      onTap: () {
+                        Navigator.of(context).pushNamed('/admin');
+                      },
+                    ),
+                  if (isAdmin)
+                    const SizedBox(height: 12),
+                  if (isAdmin)
+                    const Divider(color: Colors.white24, height: 0.8),
+                  if (isAdmin)
+                    const SizedBox(height: 12),
                   
                   ListTile(
                     contentPadding: EdgeInsets.zero,

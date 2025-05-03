@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:monkey_messanger/screens/admin/admin_panel_screen.dart';
 import 'package:monkey_messanger/screens/two_factor_auth_screen.dart';
 import 'package:monkey_messanger/services/email_service.dart';
 import 'package:monkey_messanger/utils/app_constants.dart';
@@ -16,6 +17,7 @@ import 'package:monkey_messanger/utils/supabase_config.dart';
 import 'package:monkey_messanger/services/auth_repository_impl.dart';
 import 'package:monkey_messanger/services/auth_repository.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
+import 'package:monkey_messanger/services/auth_event.dart';
 import 'package:monkey_messanger/services/auth_state.dart' as app_auth;
 import 'package:monkey_messanger/services/chat_bloc.dart';
 import 'package:monkey_messanger/screens/login_screen.dart';
@@ -194,13 +196,58 @@ class MyApp extends StatelessWidget {
               }
               
               if (state.isAuthenticated == true) {
-                // Используем экран списка чатов для аутентифицированных пользователей
-                return const ChatListScreen();
+                // Если пользователь забанен, показываем экран с сообщением о бане
+                if (state.user?.role == 'banned') {
+                  return Scaffold(
+                    body: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.block,
+                              color: AppColors.errorColor,
+                              size: 64,
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Аккаунт заблокирован',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Ваш аккаунт был заблокирован администратором. Если вы считаете, что это ошибка, пожалуйста, свяжитесь с поддержкой.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<AuthBloc>().add(const AuthSignOutEvent());
+                              },
+                              child: const Text('Выйти из аккаунта'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                
+                // Для админа показываем стандартный экран чатов с кнопкой перехода в админ-панель
+                return ChatListScreen();
               }
               
               return const LoginScreen();
             },
           ),
+          routes: {
+            '/admin': (context) => const AdminPanelScreen(),
+          },
         ),
       ),
     );
