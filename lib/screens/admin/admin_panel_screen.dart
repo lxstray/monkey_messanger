@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monkey_messanger/screens/admin/user_management_screen.dart';
 import 'package:monkey_messanger/screens/admin/chat_management_screen.dart';
-import 'package:monkey_messanger/screens/admin/database_management_screen.dart';
 import 'package:monkey_messanger/screens/admin/statistics_screen.dart';
 import 'package:monkey_messanger/services/auth_bloc.dart';
 import 'package:monkey_messanger/services/auth_state.dart' as app_auth;
@@ -22,7 +21,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final List<Widget> _screens = [
     const UserManagementScreen(),
     const ChatManagementScreen(),
-    const DatabaseManagementScreen(),
     const StatisticsScreen(),
   ];
 
@@ -81,10 +79,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.chat),
                 label: 'Чаты',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.storage),
-                label: 'База данных',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.bar_chart),

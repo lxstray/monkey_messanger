@@ -192,13 +192,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Text(
-                          'Обновлено: ${DateFormat('dd.MM.yyyy HH:mm').format(_lastRefreshed)}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -247,14 +240,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     ),
                     
                     const SizedBox(height: 20),
-                    
-                    Center(
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _loadStatistics,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Обновить статистику'),
-                      ),
-                    ),
                   ],
                 ),
               ),

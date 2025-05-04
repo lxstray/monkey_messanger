@@ -138,47 +138,54 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
       itemCount: _filteredUsers.length,
       itemBuilder: (context, index) {
         final user = _filteredUsers[index];
         final bool isBanned = user.role == 'banned';
 
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: AppColors.primaryColor,
-            backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
-            child: user.photoUrl == null ? Text(user.name[0].toUpperCase()) : null,
-          ),
-          title: Text(user.name, 
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              decoration: isBanned ? TextDecoration.lineThrough : null,
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4.0),
+          elevation: 2,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+            leading: CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.primaryColor,
+              backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
+              child: user.photoUrl == null ? Text(user.name[0].toUpperCase()) : null,
             ),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(user.email),
-              Text(
-                'Роль: ${user.role}',
-                style: TextStyle(
-                  color: user.role == AppConstants.adminRole 
-                    ? Colors.orange 
-                    : isBanned ? Colors.red : Colors.green,
-                ),
+            title: Text(user.name, 
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                decoration: isBanned ? TextDecoration.lineThrough : null,
               ),
-            ],
-          ),
-          isThreeLine: true,
-          trailing: user.role != AppConstants.adminRole
-            ? ElevatedButton(
-                onPressed: () => _toggleUserBan(user),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isBanned ? Colors.green : Colors.red,
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(user.email),
+                Text(
+                  'Роль: ${user.role}',
+                  style: TextStyle(
+                    color: user.role == AppConstants.adminRole 
+                      ? Colors.orange 
+                      : isBanned ? Colors.red : Colors.green,
+                  ),
                 ),
-                child: Text(isBanned ? 'Разблокировать' : 'Заблокировать'),
-              )
-            : const Text('Админ', style: TextStyle(color: Colors.orange)),
+              ],
+            ),
+            isThreeLine: true,
+            trailing: user.role != AppConstants.adminRole
+              ? ElevatedButton(
+                  onPressed: () => _toggleUserBan(user),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isBanned ? Colors.green : Colors.red,
+                  ),
+                  child: Text(isBanned ? 'Unban' : 'Ban'),
+                )
+              : const Text('Админ', style: TextStyle(color: Colors.orange)),
+          ),
         );
       },
     );
