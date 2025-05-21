@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:monkey_messanger/utils/app_colors.dart';
 import 'package:monkey_messanger/utils/app_constants.dart';
-import 'package:intl/intl.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({Key? key}) : super(key: key);
@@ -37,7 +36,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     try {
       final firestore = FirebaseFirestore.instance;
       
-      // Get user statistics
       final usersSnapshot = await firestore.collection(AppConstants.usersCollection).get();
       final now = DateTime.now();
       final oneWeekAgo = now.subtract(const Duration(days: 7));
@@ -56,7 +54,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         return false;
       }).length;
       
-      // Get chat statistics
       final chatsSnapshot = await firestore.collection(AppConstants.chatsCollection).get();
       _totalChats = chatsSnapshot.docs.length;
       
@@ -70,7 +67,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         return data['isGroup'] == true;
       }).length;
       
-      // Get message statistics
       int textMsgCount = 0;
       int mediaMsgCount = 0;
       int totalMsgCount = 0;
@@ -88,7 +84,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           final data = msgDoc.data();
           final messageType = data['type'] as int?;
           
-          if (messageType == 0) { // Text message
+          if (messageType == 0) { 
             textMsgCount++;
           } else if (messageType == 1 || messageType == 2 || messageType == 3) { // Media messages
             mediaMsgCount++;
@@ -196,7 +192,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     ),
                     const SizedBox(height: 20),
                     
-                    // User statistics
                     _buildStatisticCard(
                       title: 'Пользователи',
                       icon: Icons.people,
@@ -210,7 +205,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     
                     const SizedBox(height: 16),
                     
-                    // Chat statistics
                     _buildStatisticCard(
                       title: 'Чаты',
                       icon: Icons.chat,
@@ -225,7 +219,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     
                     const SizedBox(height: 16),
                     
-                    // Message statistics
                     _buildStatisticCard(
                       title: 'Сообщения',
                       icon: Icons.message,

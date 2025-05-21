@@ -13,7 +13,6 @@ class ContactRepositoryImpl implements ContactRepository {
     required FirebaseFirestore firestore,
   }) : _firestore = firestore;
 
-  // Collection references
   CollectionReference<Map<String, dynamic>> get _contactsCollection =>
       _firestore.collection('contacts');
 
@@ -36,7 +35,6 @@ class ContactRepositoryImpl implements ContactRepository {
   @override
   Future<ContactEntity> addContact(String userId, String contactEmail) async {
     try {
-      // First check if user with this email exists
       final userQuery = await _usersCollection
           .where('email', isEqualTo: contactEmail)
           .get();
@@ -48,12 +46,10 @@ class ContactRepositoryImpl implements ContactRepository {
       final contactUserData = userQuery.docs.first.data();
       final contactUserId = userQuery.docs.first.id;
 
-      // Check if the user is trying to add themselves
       if (contactUserId == userId) {
         throw Exception('Вы не можете добавить себя в контакты');
       }
 
-      // Check if the contact already exists
       final existingContactQuery = await _contactsCollection
           .where('ownerId', isEqualTo: userId)
           .where('contactId', isEqualTo: contactUserId)
@@ -63,7 +59,6 @@ class ContactRepositoryImpl implements ContactRepository {
         throw Exception('Этот контакт уже добавлен');
       }
 
-      // Create a new contact
       final contactId = _uuid.v4();
       final now = DateTime.now();
 
@@ -127,10 +122,8 @@ class ContactRepositoryImpl implements ContactRepository {
     }
   }
 
-  // Alias method for compatibility
   Future<ContactEntity> createContact(String name, String email, String ownerId) async {
     try {
-      // First check if user with this email exists
       final userQuery = await _usersCollection
           .where('email', isEqualTo: email)
           .get();
@@ -142,12 +135,10 @@ class ContactRepositoryImpl implements ContactRepository {
       final contactUserData = userQuery.docs.first.data();
       final contactUserId = userQuery.docs.first.id;
 
-      // Check if the user is trying to add themselves
       if (contactUserId == ownerId) {
         throw Exception('Вы не можете добавить себя в контакты');
       }
 
-      // Check if the contact already exists
       final existingContactQuery = await _contactsCollection
           .where('ownerId', isEqualTo: ownerId)
           .where('contactId', isEqualTo: contactUserId)
@@ -157,7 +148,6 @@ class ContactRepositoryImpl implements ContactRepository {
         throw Exception('Этот контакт уже добавлен');
       }
 
-      // Create a new contact
       final contactId = _uuid.v4();
       final now = DateTime.now();
 
@@ -187,12 +177,8 @@ class ContactRepositoryImpl implements ContactRepository {
       return {};
     }
     
-    // Firestore 'whereIn' query supports up to 30 elements per query
-    // We might need to batch if userIds list is larger, but let's keep it simple for now.
-    // Assuming userIds.length <= 30 for this implementation.
     if (userIds.length > 30) {
       AppLogger.warning('getUsersByIds called with >30 IDs (${userIds.length}). Firestore limitations might apply.');
-      // Consider implementing batching here if necessary
     }
 
     try {

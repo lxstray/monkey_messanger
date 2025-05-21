@@ -281,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickAndUploadImage() async {
-    if (_isUploading) return; // Prevent multiple uploads
+    if (_isUploading) return; 
 
     final currentUser = context.read<AuthBloc>().state.user;
     if (currentUser == null) return;
@@ -293,19 +293,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isUploading = true);
         final file = File(pickedFile.path);
         
-        // Define a unique path for the avatar
         final fileExtension = p.extension(file.path);
         final filePath = 'avatars/${currentUser.id}/profile_$fileExtension';
-        
-        // Upload using StorageService (which handles Supabase upload & compression)
-        // Pass a fake chatId or adapt StorageService if needed for profile pics
-        // For now, let's assume StorageService can handle general uploads
-        // TODO: Update StorageService if needed to handle paths without chatId
-        // For now, using user ID as the "chatId" equivalent for path structure
         final imageUrl = await _storageService.uploadImage(file, currentUser.id, specificPath: filePath);
         
         if (imageUrl.isNotEmpty && mounted) {
-          // Update user profile via AuthBloc
           context.read<AuthBloc>().add(AuthUpdateUserEvent(photoUrl: imageUrl));
           
           ScaffoldMessenger.of(context).showSnackBar(

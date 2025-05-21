@@ -21,7 +21,6 @@ class ChatRepositoryImpl implements ChatRepository {
   })  : _firestore = firestore,
         _storage = storage;
 
-  // Получение коллекций
   CollectionReference<Map<String, dynamic>> get _chatsCollection =>
       _firestore.collection(AppConstants.chatsCollection);
 
@@ -31,7 +30,6 @@ class ChatRepositoryImpl implements ChatRepository {
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection(AppConstants.usersCollection);
 
-  // Получение документов
   DocumentReference<Map<String, dynamic>> _chatDoc(String chatId) =>
       _chatsCollection.doc(chatId);
 
@@ -80,14 +78,12 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<ChatEntity> createPrivateChat(String currentUserId, String otherUserId) async {
     try {
-      // Проверяем, существует ли уже чат между этими пользователями
       final existingChatId = await getExistingChatId(currentUserId, otherUserId);
       if (existingChatId != null) {
         final chatSnapshot = await _chatDoc(existingChatId).get();
         return ChatEntity.fromMap({...chatSnapshot.data()!, 'id': chatSnapshot.id});
       }
       
-      // Получаем информацию о пользователях
       final currentUserSnapshot = await _userDoc(currentUserId).get();
       final otherUserSnapshot = await _userDoc(otherUserId).get();
       
@@ -97,7 +93,6 @@ class ChatRepositoryImpl implements ChatRepository {
       final currentUserName = currentUserData['name'] ?? 'User';
       final otherUserName = otherUserData['name'] ?? 'User';
       
-      // Создаем новый чат
       final chatId = _uuid.v4();
       final now = DateTime.now();
       
@@ -123,7 +118,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _chatDoc(chatId).set(chatData);
       
-      // Создаем системное сообщение о создании чата
       final messageId = _uuid.v4();
       final messageData = {
         'chatId': chatId,
@@ -150,16 +144,13 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<ChatEntity> createGroupChat(String creatorId, String name, List<String> participantIds, {String? imageUrl}) async {
     try {
-      // Убеждаемся, что создатель входит в список участников
       if (!participantIds.contains(creatorId)) {
         participantIds.add(creatorId);
       }
       
-      // Создаем новый чат
       final chatId = _uuid.v4();
       final now = DateTime.now();
       
-      // Инициализируем карту для непрочитанных сообщений и статусов печати
       final Map<String, int> unreadMessageCount = {};
       final Map<String, bool> typing = {};
       
@@ -181,15 +172,13 @@ class ChatRepositoryImpl implements ChatRepository {
         'createdAt': now.millisecondsSinceEpoch,
         'createdBy': creatorId,
         'typing': typing,
-        'adminIds': [creatorId], // Создатель - первый админ
+        'adminIds': [creatorId], 
       };
       
       await _chatDoc(chatId).set(chatData);
       
-      // Создаем системное сообщение о создании группы
       final messageId = _uuid.v4();
       
-      // Инициализируем статус прочтения
       final Map<String, bool> readStatus = {};
       for (final userId in participantIds) {
         readStatus[userId] = userId == creatorId;
@@ -217,10 +206,8 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<void> deleteChat(String chatId) async {
     try {
-      // Получаем все сообщения чата
       final messagesSnapshot = await _messagesCollection(chatId).get();
       
-      // Проверяем, есть ли медиа-файлы, которые нужно удалить из хранилища
       final messagesToDeleteFromStorage = messagesSnapshot.docs
           .map((doc) => MessageEntity.fromMap({...doc.data(), 'id': doc.id}))
           .where((message) => 
@@ -229,7 +216,6 @@ class ChatRepositoryImpl implements ChatRepository {
               message.type == MessageType.voice)
           .toList();
       
-      // Удаляем файлы из хранилища
       for (final message in messagesToDeleteFromStorage) {
         if (message.mediaUrl != null) {
           try {
@@ -237,22 +223,18 @@ class ChatRepositoryImpl implements ChatRepository {
             await ref.delete();
           } catch (e) {
             AppLogger.warning('Could not delete file from storage: ${message.mediaUrl}', e);
-            // Продолжаем, даже если не удалось удалить файл
           }
         }
       }
       
-      // Удаляем все сообщения из коллекции
       final batch = _firestore.batch();
       
       for (final doc in messagesSnapshot.docs) {
         batch.delete(doc.reference);
       }
       
-      // Удаляем сам чат
       batch.delete(_chatDoc(chatId));
       
-      // Выполняем все операции
       await batch.commit();
     } catch (e, stackTrace) {
       AppLogger.error('Error deleting chat', e, stackTrace);
@@ -271,24 +253,19 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       final bool isGroup = chatData['isGroup'] ?? false;
       
-      // Если это не групповой чат, просто удаляем его
       if (!isGroup) {
         await deleteChat(chatId);
         return;
       }
       
-      // Если это групповой чат, проверяем права админа
       final List<String> adminIds = List<String>.from(chatData['adminIds'] ?? []);
       final String creatorId = chatData['createdBy'] ?? '';
       
-      // Если пользователь админ или создатель, удаляем чат
       if (userId == creatorId || adminIds.contains(userId)) {
         await deleteChat(chatId);
       } else {
-        // Если пользователь не админ, просто выходим из группы
         await leaveGroupChat(chatId, userId);
       }
     } catch (e, stackTrace) {
@@ -308,50 +285,41 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       if (!(chatData['isGroup'] ?? false)) {
         throw Exception('Cannot leave a non-group chat');
       }
       
-      // Получаем текущих участников
       final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
       
       if (!participantIds.contains(userId)) {
         throw Exception('User is not a member of this chat');
       }
       
-      // Удаляем пользователя из списка участников
       participantIds.remove(userId);
       
-      // Если в группе не остается участников, удаляем ее
       if (participantIds.isEmpty) {
         await deleteChat(chatId);
         return;
       }
       
-      // Обновляем карты для непрочитанных сообщений и статусов печати
       final Map<String, int> unreadMessageCount = Map<String, int>.from(chatData['unreadMessageCount'] ?? {});
       final Map<String, bool> typing = Map<String, bool>.from(chatData['typing'] ?? {});
       
       unreadMessageCount.remove(userId);
       typing.remove(userId);
       
-      // Обновляем документ чата
       await _chatDoc(chatId).update({
         'participantIds': participantIds,
         'unreadMessageCount': unreadMessageCount,
         'typing': typing,
       });
       
-      // Добавляем системное сообщение об уходе из группы
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Получаем имя пользователя
       final userSnapshot = await _userDoc(userId).get();
       final userName = userSnapshot.data()?['name'] ?? 'Пользователь';
       
-      // Инициализируем статус прочтения для оставшихся участников
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = false;
@@ -369,7 +337,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о последнем сообщении
       await _chatDoc(chatId).update({
         'lastMessageText': '$userName покинул(а) группу',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -392,44 +359,36 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       if (!(chatData['isGroup'] ?? false)) {
         throw Exception('Cannot add user to a non-group chat');
       }
       
-      // Получаем текущих участников
       final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
       
       if (participantIds.contains(userId)) {
         throw Exception('User is already a member of this chat');
       }
       
-      // Добавляем пользователя в список участников
       participantIds.add(userId);
       
-      // Обновляем карты для непрочитанных сообщений и статусов печати
       final Map<String, int> unreadMessageCount = Map<String, int>.from(chatData['unreadMessageCount'] ?? {});
       final Map<String, bool> typing = Map<String, bool>.from(chatData['typing'] ?? {});
       
       unreadMessageCount[userId] = 0;
       typing[userId] = false;
       
-      // Обновляем документ чата
       await _chatDoc(chatId).update({
         'participantIds': participantIds,
         'unreadMessageCount': unreadMessageCount,
         'typing': typing,
       });
       
-      // Добавляем системное сообщение о присоединении к группе
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Получаем имя пользователя
       final userSnapshot = await _userDoc(userId).get();
       final userName = userSnapshot.data()?['name'] ?? 'Пользователь';
       
-      // Инициализируем статус прочтения
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = participantId == userId;
@@ -447,7 +406,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о последнем сообщении
       await _chatDoc(chatId).update({
         'lastMessageText': '$userName присоединился(ась) к группе',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -470,53 +428,44 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       if (!(chatData['isGroup'] ?? false)) {
         throw Exception('Cannot remove user from a non-group chat');
       }
       
-      // Получаем текущих участников
       final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
       
       if (!participantIds.contains(userId)) {
         throw Exception('User is not a member of this chat');
       }
       
-      // Проверяем, является ли пользователь создателем (админом) чата
       final String creatorId = chatData['createdBy'] ?? '';
       if (userId == creatorId) {
         throw Exception('Cannot remove the creator of the chat');
       }
       
-      // Удаляем пользователя из списка участников
       participantIds.remove(userId);
       
-      // Обновляем карты для непрочитанных сообщений и статусов печати
       final Map<String, int> unreadMessageCount = Map<String, int>.from(chatData['unreadMessageCount'] ?? {});
       final Map<String, bool> typing = Map<String, bool>.from(chatData['typing'] ?? {});
       
       unreadMessageCount.remove(userId);
       typing.remove(userId);
       
-      // Обновляем документ чата
       await _chatDoc(chatId).update({
         'participantIds': participantIds,
         'unreadMessageCount': unreadMessageCount,
         'typing': typing,
       });
       
-      // Добавляем системное сообщение об удалении из группы
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Получаем имена пользователей
       final userSnapshot = await _userDoc(userId).get();
       final adminSnapshot = await _userDoc(creatorId).get();
       
       final userName = userSnapshot.data()?['name'] ?? 'Пользователь';
       final adminName = adminSnapshot.data()?['name'] ?? 'Администратор';
       
-      // Инициализируем статус прочтения для оставшихся участников
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = false;
@@ -534,7 +483,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о последнем сообщении
       await _chatDoc(chatId).update({
         'lastMessageText': '$adminName удалил(а) $userName из группы',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -557,24 +505,19 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       if (!(chatData['isGroup'] ?? false)) {
         throw Exception('Cannot update name of a non-group chat');
       }
       
-      // Обновляем имя группы
       await _chatDoc(chatId).update({
         'name': newName,
       });
       
-      // Добавляем системное сообщение об изменении имени группы
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Получаем список участников
       final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
       
-      // Инициализируем статус прочтения
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = false;
@@ -592,7 +535,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о последнем сообщении
       await _chatDoc(chatId).update({
         'lastMessageText': 'Название группы изменено на "$newName"',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -615,12 +557,10 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       if (!(chatData['isGroup'] ?? false)) {
         throw Exception('Cannot update image of a non-group chat');
       }
       
-      // Проверяем, нужно ли удалить предыдущее изображение
       final String? oldImageUrl = chatData['imageUrl'];
       if (oldImageUrl != null && oldImageUrl.isNotEmpty) {
         try {
@@ -628,23 +568,18 @@ class ChatRepositoryImpl implements ChatRepository {
           await ref.delete();
         } catch (e) {
           AppLogger.warning('Could not delete old image from storage: $oldImageUrl', e);
-          // Продолжаем, даже если не удалось удалить файл
         }
       }
       
-      // Обновляем изображение группы
       await _chatDoc(chatId).update({
         'imageUrl': imageUrl,
       });
       
-      // Добавляем системное сообщение об изменении изображения группы
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Получаем список участников
       final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
       
-      // Инициализируем статус прочтения
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = false;
@@ -662,7 +597,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о последнем сообщении
       await _chatDoc(chatId).update({
         'lastMessageText': 'Изображение группы обновлено',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -683,46 +617,36 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Chat does not exist');
       }
       
-      // Получаем текущее количество непрочитанных сообщений
       final Map<String, dynamic> unreadMessageCount = 
           Map<String, dynamic>.from(chatSnapshot.data()?['unreadMessageCount'] ?? {});
       
-      // Обновляем количество непрочитанных сообщений
       unreadMessageCount[userId] = 0;
       
-      // Обновляем документ чата
       await _chatDoc(chatId).update({
         'unreadMessageCount': unreadMessageCount,
       });
       
-      // Получаем все непрочитанные сообщения для данного пользователя
       final unreadMessagesSnapshot = await _messagesCollection(chatId)
           .where('readStatus.$userId', isEqualTo: false)
           .get();
       
-      // Если нет непрочитанных сообщений, выходим
       if (unreadMessagesSnapshot.docs.isEmpty) {
         return;
       }
       
-      // Обновляем статус прочтения для всех непрочитанных сообщений
       final batch = _firestore.batch();
       
       for (final doc in unreadMessagesSnapshot.docs) {
-        // Получаем текущий статус прочтения
         final Map<String, dynamic> readStatus = 
             Map<String, dynamic>.from(doc.data()['readStatus'] ?? {});
         
-        // Обновляем статус прочтения для данного пользователя
         readStatus[userId] = true;
         
-        // Добавляем обновление в batch
         batch.update(doc.reference, {
           'readStatus': readStatus,
         });
       }
       
-      // Выполняем все обновления
       await batch.commit();
     } catch (e, stackTrace) {
       AppLogger.error('Error marking chat as read', e, stackTrace);
@@ -739,14 +663,11 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Chat does not exist');
       }
       
-      // Получаем текущий статус печати
       final Map<String, dynamic> typing = 
           Map<String, dynamic>.from(chatSnapshot.data()?['typing'] ?? {});
       
-      // Обновляем статус печати
       typing[userId] = isTyping;
       
-      // Обновляем документ чата
       await _chatDoc(chatId).update({
         'typing': typing,
       });
@@ -765,18 +686,15 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Chat does not exist');
       }
       
-      // Получаем список участников чата
       final List<String> participantIds = List<String>.from(chatSnapshot.data()?['participantIds'] ?? []);
       
       if (!participantIds.contains(senderId)) {
         throw Exception('User is not a member of this chat');
       }
       
-      // Создаем новое сообщение
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Инициализируем статус прочтения для всех участников
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = participantId == senderId;
@@ -794,7 +712,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о непрочитанных сообщениях
       final Map<String, int> unreadMessageCount = 
           Map<String, int>.from(chatSnapshot.data()?['unreadMessageCount'] ?? {});
       
@@ -804,7 +721,6 @@ class ChatRepositoryImpl implements ChatRepository {
         }
       }
       
-      // Обновляем информацию о последнем сообщении в чате
       await _chatDoc(chatId).update({
         'lastMessageText': text,
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -828,23 +744,19 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Chat does not exist');
       }
       
-      // Получаем список участников чата
       final List<String> participantIds = List<String>.from(chatSnapshot.data()?['participantIds'] ?? []);
       
       if (!participantIds.contains(senderId)) {
         throw Exception('User is not a member of this chat');
       }
       
-      // Загружаем изображение в хранилище
       final storageRef = _storage.ref().child('chat_images/${_uuid.v4()}_${DateTime.now().millisecondsSinceEpoch}');
       final uploadTask = await storageRef.putFile(imageFile);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
       
-      // Создаем новое сообщение
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Инициализируем статус прочтения для всех участников
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = participantId == senderId;
@@ -865,7 +777,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о непрочитанных сообщениях
       final Map<String, int> unreadMessageCount = 
           Map<String, int>.from(chatSnapshot.data()?['unreadMessageCount'] ?? {});
       
@@ -875,7 +786,6 @@ class ChatRepositoryImpl implements ChatRepository {
         }
       }
       
-      // Обновляем информацию о последнем сообщении в чате
       await _chatDoc(chatId).update({
         'lastMessageText': caption?.isNotEmpty == true ? 'Фото: $caption' : 'Фото',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -899,24 +809,20 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Chat does not exist');
       }
       
-      // Получаем список участников чата
       final List<String> participantIds = List<String>.from(chatSnapshot.data()?['participantIds'] ?? []);
       
       if (!participantIds.contains(senderId)) {
         throw Exception('User is not a member of this chat');
       }
       
-      // Загружаем файл в хранилище
       final fileName = file.path.split('/').last;
       final storageRef = _storage.ref().child('chat_files/${_uuid.v4()}_$fileName');
       final uploadTask = await storageRef.putFile(file);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
       
-      // Создаем новое сообщение
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Инициализируем статус прочтения для всех участников
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = participantId == senderId;
@@ -937,7 +843,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о непрочитанных сообщениях
       final Map<String, int> unreadMessageCount = 
           Map<String, int>.from(chatSnapshot.data()?['unreadMessageCount'] ?? {});
       
@@ -947,7 +852,6 @@ class ChatRepositoryImpl implements ChatRepository {
         }
       }
       
-      // Обновляем информацию о последнем сообщении в чате
       await _chatDoc(chatId).update({
         'lastMessageText': 'Файл: $fileName',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -971,24 +875,20 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Chat does not exist');
       }
       
-      // Получаем список участников чата
       final List<String> participantIds = List<String>.from(chatSnapshot.data()?['participantIds'] ?? []);
       
       if (!participantIds.contains(senderId)) {
         throw Exception('User is not a member of this chat');
       }
       
-      // Загружаем аудиофайл в хранилище
       final fileName = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
       final storageRef = _storage.ref().child('chat_voice/${_uuid.v4()}_$fileName');
       final uploadTask = await storageRef.putFile(audioFile);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
       
-      // Создаем новое сообщение
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Инициализируем статус прочтения для всех участников
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = participantId == senderId;
@@ -1010,7 +910,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о непрочитанных сообщениях
       final Map<String, int> unreadMessageCount = 
           Map<String, int>.from(chatSnapshot.data()?['unreadMessageCount'] ?? {});
       
@@ -1020,12 +919,10 @@ class ChatRepositoryImpl implements ChatRepository {
         }
       }
       
-      // Форматируем длительность голосового сообщения
       final int minutes = durationSeconds ~/ 60;
       final int seconds = durationSeconds % 60;
       final String duration = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
       
-      // Обновляем информацию о последнем сообщении в чате
       await _chatDoc(chatId).update({
         'lastMessageText': 'Голосовое сообщение ($duration)',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -1052,7 +949,6 @@ class ChatRepositoryImpl implements ChatRepository {
       final messageData = messageSnapshot.data()!;
       final messageType = MessageType.values[messageData['type'] ?? 0];
       
-      // Если сообщение содержит медиафайл, удаляем его из хранилища
       if (messageType == MessageType.image || 
           messageType == MessageType.file || 
           messageType == MessageType.voice) {
@@ -1063,15 +959,12 @@ class ChatRepositoryImpl implements ChatRepository {
             await ref.delete();
           } catch (e) {
             AppLogger.warning('Could not delete media from storage: $mediaUrl', e);
-            // Продолжаем, даже если не удалось удалить файл
           }
         }
       }
       
-      // Удаляем сообщение
       await _messageDoc(chatId, messageId).delete();
       
-      // Проверяем, было ли это последнее сообщение в чате
       final chatSnapshot = await _chatDoc(chatId).get();
       final chatData = chatSnapshot.data()!;
       
@@ -1079,7 +972,6 @@ class ChatRepositoryImpl implements ChatRepository {
       final messageTimestamp = messageData['timestamp'] ?? 0;
       
       if (lastMessageTimestamp == messageTimestamp) {
-        // Находим новое последнее сообщение
         final messagesSnapshot = await _messagesCollection(chatId)
             .orderBy('timestamp', descending: true)
             .limit(1)
@@ -1093,7 +985,6 @@ class ChatRepositoryImpl implements ChatRepository {
           
           String displayText = lastMessageText;
           
-          // Формируем текст для отображения в зависимости от типа сообщения
           if (lastMessageType == MessageType.image) {
             displayText = lastMessageText.isNotEmpty ? 'Фото: $lastMessageText' : 'Фото';
           } else if (lastMessageType == MessageType.file) {
@@ -1107,14 +998,12 @@ class ChatRepositoryImpl implements ChatRepository {
             displayText = 'Голосовое сообщение ($duration)';
           }
           
-          // Обновляем информацию о последнем сообщении
           await _chatDoc(chatId).update({
             'lastMessageText': displayText,
             'lastMessageTime': lastMessage['timestamp'],
             'lastMessageSenderId': lastMessageSenderId,
           });
         } else {
-          // Если нет сообщений, обновляем информацию о последнем сообщении
           await _chatDoc(chatId).update({
             'lastMessageText': 'Нет сообщений',
             'lastMessageTime': DateTime.now().millisecondsSinceEpoch,
@@ -1140,18 +1029,15 @@ class ChatRepositoryImpl implements ChatRepository {
       final messageData = messageSnapshot.data()!;
       final messageType = MessageType.values[messageData['type'] ?? 0];
       
-      // Проверяем, что это текстовое сообщение
       if (messageType != MessageType.text) {
         throw Exception('Only text messages can be edited');
       }
       
-      // Обновляем текст сообщения
       await _messageDoc(chatId, messageId).update({
         'text': newText,
         'isEdited': true,
       });
       
-      // Проверяем, было ли это последнее сообщение в чате
       final chatSnapshot = await _chatDoc(chatId).get();
       final chatData = chatSnapshot.data()!;
       
@@ -1159,7 +1045,6 @@ class ChatRepositoryImpl implements ChatRepository {
       final messageTimestamp = messageData['timestamp'] ?? 0;
       
       if (lastMessageTimestamp == messageTimestamp) {
-        // Обновляем информацию о последнем сообщении
         await _chatDoc(chatId).update({
           'lastMessageText': newText,
         });
@@ -1179,40 +1064,32 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Message does not exist');
       }
       
-      // Получаем текущий статус прочтения
       final Map<String, dynamic> readStatus = 
           Map<String, dynamic>.from(messageSnapshot.data()?['readStatus'] ?? {});
       
-      // Если сообщение уже прочитано, выходим
       if (readStatus[userId] == true) {
         return;
       }
       
-      // Обновляем статус прочтения
       readStatus[userId] = true;
       
-      // Обновляем сообщение
       await _messageDoc(chatId, messageId).update({
         'readStatus': readStatus,
       });
       
-      // Обновляем количество непрочитанных сообщений в чате
       final chatSnapshot = await _chatDoc(chatId).get();
       
       if (!chatSnapshot.exists) {
         throw Exception('Chat does not exist');
       }
       
-      // Получаем текущее количество непрочитанных сообщений
       final Map<String, dynamic> unreadMessageCount = 
           Map<String, dynamic>.from(chatSnapshot.data()?['unreadMessageCount'] ?? {});
       
-      // Уменьшаем количество непрочитанных сообщений
       final int currentUnreadCount = unreadMessageCount[userId] ?? 0;
       if (currentUnreadCount > 0) {
         unreadMessageCount[userId] = currentUnreadCount - 1;
         
-        // Обновляем документ чата
         await _chatDoc(chatId).update({
           'unreadMessageCount': unreadMessageCount,
         });
@@ -1226,7 +1103,6 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<List<UserEntity>> searchUsers(String query, {int limit = 10}) async {
     try {
-      // Поиск пользователей по имени (case-insensitive)
       final result = await _usersCollection
           .orderBy('name')
           .startAt([query])
@@ -1246,7 +1122,6 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<List<UserEntity>> getRecentContacts(String userId, {int limit = 10}) async {
     try {
-      // Получаем чаты пользователя
       final chatsSnapshot = await _chatsCollection
           .where('participantIds', arrayContains: userId)
           .orderBy('lastMessageTime', descending: true)
@@ -1256,7 +1131,6 @@ class ChatRepositoryImpl implements ChatRepository {
       final Set<String> contactIds = {};
       final List<UserEntity> contacts = [];
       
-      // Получаем участников чатов
       for (final doc in chatsSnapshot.docs) {
         final chatData = doc.data();
         final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
@@ -1265,13 +1139,11 @@ class ChatRepositoryImpl implements ChatRepository {
           if (participantId != userId && !contactIds.contains(participantId)) {
             contactIds.add(participantId);
             
-            // Получаем данные пользователя
             final userSnapshot = await _userDoc(participantId).get();
             if (userSnapshot.exists) {
               contacts.add(UserEntity.fromMap({...userSnapshot.data()!, 'id': userSnapshot.id}));
             }
             
-            // Ограничиваем количество контактов
             if (contacts.length >= limit) {
               break;
             }
@@ -1315,7 +1187,6 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<String?> getExistingChatId(String userId1, String userId2) async {
     try {
-      // Ищем чат, в котором участвуют оба пользователя
       final chatsSnapshot = await _chatsCollection
           .where('participantIds', arrayContains: userId1)
           .where('isGroup', isEqualTo: false)
@@ -1370,52 +1241,41 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       if (!(chatData['isGroup'] ?? false)) {
         throw Exception('Cannot add admin to a non-group chat');
       }
       
-      // Проверяем, является ли текущий пользователь админом
       final List<String> adminIds = List<String>.from(chatData['adminIds'] ?? []);
       final String creatorId = chatData['createdBy'] ?? '';
       
-      // Если текущий пользователь не админ или не создатель, отклоняем запрос
       if (!adminIds.contains(adminId) && adminId != creatorId) {
         throw Exception('Only admins can add new admins');
       }
       
-      // Проверяем, есть ли пользователь в группе
       final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
       if (!participantIds.contains(userId)) {
         throw Exception('User is not a member of this chat');
       }
       
-      // Проверяем, не является ли пользователь уже админом
       if (adminIds.contains(userId)) {
         throw Exception('User is already an admin of this chat');
       }
       
-      // Добавляем пользователя в список админов
       adminIds.add(userId);
       
-      // Обновляем документ чата
       await _chatDoc(chatId).update({
         'adminIds': adminIds,
       });
       
-      // Получаем имя нового админа
       final userSnapshot = await _userDoc(userId).get();
       final userName = userSnapshot.data()?['name'] ?? 'Пользователь';
       
-      // Получаем имя назначившего админа
       final adminSnapshot = await _userDoc(adminId).get();
       final adminName = adminSnapshot.data()?['name'] ?? 'Администратор';
       
-      // Добавляем системное сообщение о назначении админа
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Инициализируем статус прочтения
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = false;
@@ -1433,7 +1293,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о последнем сообщении
       await _chatDoc(chatId).update({
         'lastMessageText': '$adminName назначил(а) $userName администратором группы',
         'lastMessageTime': now.millisecondsSinceEpoch,
@@ -1457,54 +1316,42 @@ class ChatRepositoryImpl implements ChatRepository {
       
       final chatData = chatSnapshot.data()!;
       
-      // Проверяем, является ли чат групповым
       if (!(chatData['isGroup'] ?? false)) {
         throw Exception('Cannot remove admin from a non-group chat');
       }
       
-      // Проверяем, является ли текущий пользователь админом
       final List<String> adminIds = List<String>.from(chatData['adminIds'] ?? []);
       final String creatorId = chatData['createdBy'] ?? '';
       
-      // Если текущий пользователь не админ или не создатель, отклоняем запрос
       if (!adminIds.contains(adminId) && adminId != creatorId) {
         throw Exception('Only admins can remove admins');
       }
       
-      // Проверяем, является ли пользователь админом
       if (!adminIds.contains(userId)) {
         throw Exception('User is not an admin of this chat');
       }
       
-      // Нельзя удалить привилегии у создателя группы
       if (userId == creatorId) {
         throw Exception('Cannot remove creator from admins');
       }
       
-      // Удаляем пользователя из списка админов
       adminIds.remove(userId);
       
-      // Обновляем документ чата
       await _chatDoc(chatId).update({
         'adminIds': adminIds,
       });
       
-      // Получаем имя бывшего админа
       final userSnapshot = await _userDoc(userId).get();
       final userName = userSnapshot.data()?['name'] ?? 'Пользователь';
       
-      // Получаем имя удалившего админа
       final adminSnapshot = await _userDoc(adminId).get();
       final adminName = adminSnapshot.data()?['name'] ?? 'Администратор';
       
-      // Получаем список участников
       final List<String> participantIds = List<String>.from(chatData['participantIds'] ?? []);
       
-      // Добавляем системное сообщение о снятии админа
       final messageId = _uuid.v4();
       final now = DateTime.now();
       
-      // Инициализируем статус прочтения
       final Map<String, bool> readStatus = {};
       for (final participantId in participantIds) {
         readStatus[participantId] = false;
@@ -1522,7 +1369,6 @@ class ChatRepositoryImpl implements ChatRepository {
       
       await _messageDoc(chatId, messageId).set(messageData);
       
-      // Обновляем информацию о последнем сообщении
       await _chatDoc(chatId).update({
         'lastMessageText': '$adminName снял(а) с $userName права администратора',
         'lastMessageTime': now.millisecondsSinceEpoch,

@@ -88,7 +88,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         'role': isBanned ? AppConstants.userRole : 'banned',
       });
 
-      // Update local state
       final index = _users.indexWhere((u) => u.id == user.id);
       if (index != -1) {
         final updatedUser = user.copyWith(

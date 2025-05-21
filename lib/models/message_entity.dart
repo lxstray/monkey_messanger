@@ -1,29 +1,28 @@
 import 'package:equatable/equatable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Типы сообщений в чате
 enum MessageType {
   text,
   image,
   file,
   voice,
-  system,  // Системные сообщения, например о создании чата
+  system,  
 }
 
 class MessageEntity extends Equatable {
   final String id;
   final String chatId;
-  final String senderId; // ID отправителя
+  final String senderId;
   final String? text;
   final MessageType type;
   final DateTime timestamp;
   final bool isEdited;
-  final Map<String, bool>? readStatus; // Map<userId, hasRead>
-  final String? mediaUrl; // URL изображения, файла или голосового сообщения
-  final String? mediaName; // Имя файла (для файлов)
-  final int? mediaSizeBytes; // Размер файла (для файлов и голосовых)
-  final int? voiceDurationSeconds; // Длительность голосового сообщения
-  final Map<String, dynamic>? metadata; // Дополнительные данные
+  final Map<String, bool>? readStatus; 
+  final String? mediaUrl; 
+  final String? mediaName; 
+  final int? mediaSizeBytes; 
+  final int? voiceDurationSeconds; 
+  final Map<String, dynamic>? metadata; 
 
   const MessageEntity({
     required this.id,
@@ -41,7 +40,6 @@ class MessageEntity extends Equatable {
     this.metadata,
   });
 
-  // Копирование объекта с возможностью изменения отдельных полей
   MessageEntity copyWith({
     String? id,
     String? chatId,
@@ -74,14 +72,13 @@ class MessageEntity extends Equatable {
     );
   }
 
-  // Преобразование в Map для Firebase
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'chatId': chatId,
       'senderId': senderId,
       'text': text,
-      'type': type.index, // Сохраняем индекс enum
+      'type': type.index, 
       'timestamp': timestamp.millisecondsSinceEpoch,
       'isEdited': isEdited,
       'readStatus': readStatus,
@@ -93,9 +90,7 @@ class MessageEntity extends Equatable {
     };
   }
 
-  // Создание объекта из Map из Firebase
   factory MessageEntity.fromMap(Map<String, dynamic> map) {
-    // Обработка времени, которое может быть в разных форматах
     DateTime _parseDateTime(dynamic time) {
       if (time is Timestamp) {
         return time.toDate();
@@ -110,7 +105,7 @@ class MessageEntity extends Equatable {
       chatId: map['chatId'] ?? '',
       senderId: map['senderId'] ?? '',
       text: map['text'],
-      type: MessageType.values[map['type'] ?? 0], // Преобразуем индекс обратно в enum
+      type: MessageType.values[map['type'] ?? 0],
       timestamp: _parseDateTime(map['timestamp']),
       isEdited: map['isEdited'] ?? false,
       readStatus: map['readStatus'] != null 
@@ -124,7 +119,6 @@ class MessageEntity extends Equatable {
     );
   }
 
-  // Создание текстового сообщения
   factory MessageEntity.text({
     required String id,
     required String chatId,
@@ -144,7 +138,6 @@ class MessageEntity extends Equatable {
     );
   }
 
-  // Создание сообщения с изображением
   factory MessageEntity.image({
     required String id,
     required String chatId,
@@ -168,7 +161,6 @@ class MessageEntity extends Equatable {
     );
   }
 
-  // Создание сообщения с файлом
   factory MessageEntity.file({
     required String id,
     required String chatId,
@@ -194,7 +186,6 @@ class MessageEntity extends Equatable {
     );
   }
 
-  // Создание голосового сообщения
   factory MessageEntity.voice({
     required String id,
     required String chatId,
@@ -218,7 +209,6 @@ class MessageEntity extends Equatable {
     );
   }
 
-  // Создание системного сообщения
   factory MessageEntity.system({
     required String id,
     required String chatId,
@@ -235,33 +225,27 @@ class MessageEntity extends Equatable {
     );
   }
 
-  // Проверка прочитал ли конкретный пользователь сообщение
   bool isReadBy(String userId) {
     return readStatus?[userId] ?? false;
   }
 
-  // Проверка, прочитано ли сообщение всеми участниками
   bool isReadByAll(List<String> participantIds, {List<String>? excludeUserIds}) {
     if (readStatus == null || readStatus!.isEmpty) return false;
     
-    // Игнорировать отправителя и дополнительных пользователей при проверке
     final List<String> usersToCheck = participantIds
         .where((uid) => uid != senderId && !(excludeUserIds?.contains(uid) ?? false))
         .toList();
     
-    // Если некого проверять, считаем что прочитано всеми
     if (usersToCheck.isEmpty) return true;
     
     return usersToCheck.every((uid) => readStatus![uid] == true);
   }
 
-  // Получение числа прочитавших
   int getReadCount() {
     if (readStatus == null) return 0;
     return readStatus!.values.where((hasRead) => hasRead).length;
   }
 
-  // Получение списка ID пользователей, прочитавших сообщение
   List<String> getReadUserIds() {
     if (readStatus == null) return [];
     return readStatus!.entries

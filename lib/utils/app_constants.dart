@@ -1,8 +1,7 @@
 class AppConstants {
-  // App name
   static const String appName = 'Monkey Messenger';
   
-  // Firebase collections
+  // Firebase 
   static const String usersCollection = 'users';
   static const String chatsCollection = 'chats';
   static const String messagesCollection = 'messages';

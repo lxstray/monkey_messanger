@@ -14,7 +14,6 @@ class EmailService {
   final FirebaseFirestore _firestore;
   final SharedPreferences _prefs;
   
-  // Для хранения последнего сгенерированного кода (для тестирования)
   String? _lastGeneratedCode;
   
   EmailService({
@@ -25,23 +24,18 @@ class EmailService {
       _firestore = firestore,
       _prefs = prefs;
       
-  // Получение последнего сгенерированного кода (для тестирования)
   String? get lastGeneratedCode => _lastGeneratedCode;
   
-  // Code to generate a random 6-digit verification code
   String _generateVerificationCode() {
     final random = Random();
-    return (100000 + random.nextInt(900000)).toString(); // 6-digit code between 100000-999999
+    return (100000 + random.nextInt(900000)).toString(); 
   }
   
-  // Send verification code via email for 2FA
   Future<bool> sendVerificationCode(String email) async {
     try {
-      // Generate a random verification code
       final code = _generateVerificationCode();
-      _lastGeneratedCode = code; // Сохраняем для тестирования
+      _lastGeneratedCode = code; 
       
-      // Store the code in Firestore with an expiration time (5 minutes from now)
       final expiresAt = DateTime.now().add(const Duration(minutes: 5));
       
       await _firestore.collection(AppConstants.verificationCodesCollection).doc(email).set({
@@ -50,16 +44,12 @@ class EmailService {
         'createdAt': FieldValue.serverTimestamp(),
       });
       
-      // Отправляем код через отдельный Email сервис
       final success = await _sendEmailViaService(email, code);
       
-      // Если отправка через сервис не удалась, логируем код для тестирования
       if (!success) {
         AppLogger.info('Email service failed, verification code for testing: $code');
       }
       
-      // Возвращаем true даже если email не отправился, но код создан в firestore
-      // Это позволит тестировать с показом кода через диалог
       return true;
     } catch (e, stackTrace) {
       AppLogger.error('Error sending verification code', e, stackTrace);
@@ -67,7 +57,6 @@ class EmailService {
     }
   }
   
-  // Отправка email через внешний сервис
   Future<bool> _sendEmailViaService(String email, String code) async {
     try {
       final response = await http.post(
@@ -95,14 +84,12 @@ class EmailService {
     }
   }
   
-  // Verify the code entered by the user
   Future<bool> verifyCode(String email, String code) async {
     try {
       final docRef = _firestore.collection(AppConstants.verificationCodesCollection).doc(email);
       final doc = await docRef.get();
       
       if (!doc.exists) {
-        // No verification code found for this email
         return false;
       }
       
@@ -110,17 +97,13 @@ class EmailService {
       final storedCode = data['code'] as String;
       final expiresAt = (data['expiresAt'] as Timestamp).toDate();
       
-      // Check if the code has expired
       if (DateTime.now().isAfter(expiresAt)) {
-        // Code has expired
-        await docRef.delete(); // Clean up expired code
+        await docRef.delete();
         return false;
       }
       
-      // Verify the code
       final isValid = storedCode == code;
       
-      // If valid, clean up the used code
       if (isValid) {
         await docRef.delete();
       }
@@ -132,7 +115,6 @@ class EmailService {
     }
   }
   
-  // Показать сгенерированный код в диалоговом окне для тестирования
   void showTestCodeDialog(BuildContext context) {
     if (_lastGeneratedCode != null) {
       showDialog(

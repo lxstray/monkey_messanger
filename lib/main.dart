@@ -30,36 +30,29 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Отключаем отладочные режимы для повышения производительности
   debugPaintSizeEnabled = false;
   debugPrintMarkNeedsLayoutStacks = false;
   debugPrintMarkNeedsPaintStacks = false;
   
-  // Устанавливаем предпочтительную ориентацию экрана
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
   
-  // Оптимизируем использование памяти
   ImageCache().maximumSizeBytes = 1024 * 1024 * 50; // 50MB для кэша
   
-  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  // Initialize Supabase
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
-    debug: false, // Отключаем debug режим в production
+    debug: false, 
   );
   
-  // Initialize SharedPreferences
   final sharedPreferences = await SharedPreferences.getInstance();
   
-  // Create repository instances
   final authRepository = AuthRepositoryImpl(
     firebaseAuth: FirebaseAuth.instance,
     firestore: FirebaseFirestore.instance,
@@ -67,14 +60,12 @@ void main() async {
     prefs: sharedPreferences,
   );
   
-  // Create email service for 2FA
   final emailService = EmailService(
     firebaseAuth: FirebaseAuth.instance,
     firestore: FirebaseFirestore.instance,
     prefs: sharedPreferences,
   );
   
-  // Регистрируем наблюдатель для Bloc
   Bloc.observer = SimpleBlocObserver();
   
   runApp(
@@ -85,7 +76,6 @@ void main() async {
   );
 }
 
-// Наблюдатель для отслеживания состояний блока
 class SimpleBlocObserver extends BlocObserver {
   @override
   void onEvent(Bloc bloc, Object? event) {
@@ -103,7 +93,6 @@ class SimpleBlocObserver extends BlocObserver {
   void onError(BlocBase bloc, Object error, StackTrace stackTrace) {
     AppLogger.error('${bloc.runtimeType} | Error: $error', error, stackTrace);
     
-    // Добавляем дополнительную обработку специфичных ошибок Firebase
     if (error.toString().contains('firebase') || error.toString().contains('network')) {
       AppLogger.warning('Обнаружена ошибка Firebase или сети. Возможно, проблемы с подключением.');
     }
@@ -169,11 +158,9 @@ class MyApp extends StatelessWidget {
               }
             },
             builder: (context, state) {
-              // Логирование текущего состояния
               AppLogger.info('Current AuthState: ${state.status}');
               
               if (state.status == app_auth.AuthStatus.initial) {
-                // Возвращаем загрузочный экран для начального состояния
                 return const Scaffold(
                   body: Center(
                     child: CircularProgressIndicator(),
@@ -182,7 +169,6 @@ class MyApp extends StatelessWidget {
               }
               
               if (state.isLoading == true) {
-                // Возвращаем загрузочный экран для состояния загрузки
                 return const Scaffold(
                   body: Center(
                     child: CircularProgressIndicator(),
@@ -190,13 +176,11 @@ class MyApp extends StatelessWidget {
                 );
               }
               
-              // Show 2FA verification screen if required
               if (state.isTwoFactorRequired == true && state.email != null) {
                 return TwoFactorAuthScreen(email: state.email!);
               }
               
               if (state.isAuthenticated == true) {
-                // Если пользователь забанен, показываем экран с сообщением о бане
                 if (state.user?.role == 'banned') {
                   return Scaffold(
                     body: Center(
@@ -238,7 +222,6 @@ class MyApp extends StatelessWidget {
                   );
                 }
                 
-                // Для админа показываем стандартный экран чатов с кнопкой перехода в админ-панель
                 return ChatListScreen();
               }
               

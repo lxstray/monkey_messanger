@@ -17,7 +17,7 @@ class AuthState extends Equatable {
   final UserEntity? user;
   final String? errorMessage;
   final bool isNewUser;
-  final String? email; // Used for 2FA verification
+  final String? email; 
 
   const AuthState({
     this.status = AuthStatus.initial,

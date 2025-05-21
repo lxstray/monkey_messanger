@@ -110,7 +110,6 @@ class AuthRepositoryImpl implements AuthRepository {
         if (doc.exists) {
           final data = doc.data() as Map<String, dynamic>;
           
-          // Обработка Timestamp для createdAt и lastActive
           final createdAt = data['createdAt'];
           final lastActive = data['lastActive'];
           
@@ -145,8 +144,6 @@ class AuthRepositoryImpl implements AuthRepository {
             is2faEnabled: data['2faEnabled'] ?? false,
           );
         } else {
-          // Пользователь аутентифицирован через Firebase Auth, но данные в Firestore отсутствуют
-          // Создаем новую запись пользователя
           final newUser = UserEntity(
             id: user.uid,
             name: user.displayName ?? user.email?.split('@')[0] ?? 'User',
@@ -156,10 +153,9 @@ class AuthRepositoryImpl implements AuthRepository {
             createdAt: DateTime.now(),
             lastActive: DateTime.now(),
             isOnline: true,
-            is2faEnabled: false,  // По умолчанию 2FA выключена
+            is2faEnabled: false,  
           );
           
-          // Сохраняем данные нового пользователя
           await saveUserData(newUser);
           return newUser;
         }
@@ -205,7 +201,6 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await _firestore.collection(AppConstants.usersCollection).doc(user.id).set(user.toMap());
       
-      // Save some user data locally
       await _prefs.setString(AppConstants.userIdKey, user.id);
       await _prefs.setString(AppConstants.userEmailKey, user.email);
       await _prefs.setString(AppConstants.userNameKey, user.name);
@@ -257,11 +252,9 @@ class AuthRepositoryImpl implements AuthRepository {
       final userCredential = await _firebaseAuth.signInWithCredential(credential);
       
       if (userCredential.user != null) {
-        // Check if user already exists in database
         final userDoc = await _firestore.collection(AppConstants.usersCollection).doc(userCredential.user!.uid).get();
         
         if (!userDoc.exists) {
-          // Create new user entity
           final newUser = UserEntity(
             id: userCredential.user!.uid,
             name: userCredential.user!.displayName ?? googleUser.email.split('@')[0],
@@ -345,7 +338,6 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     } catch (e, stackTrace) {
       AppLogger.error('Error updating user online status', e, stackTrace);
-      // Don't rethrow, as this is a background operation
     }
   }
 } 

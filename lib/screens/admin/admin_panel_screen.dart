@@ -27,7 +27,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   @override
   void initState() {
     super.initState();
-    // Check if user is admin
     final authState = context.read<AuthBloc>().state;
     if (authState.user?.role != AppConstants.adminRole) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -46,7 +45,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, app_auth.AuthState>(
       builder: (context, state) {
-        // Only show admin panel for admin users
         if (state.user?.role != AppConstants.adminRole) {
           return const Scaffold(
             body: Center(

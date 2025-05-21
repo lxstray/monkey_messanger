@@ -24,11 +24,9 @@ class _AdminChatDetailScreenState extends State<AdminChatDetailScreen> {
   List<MessageEntity> _messages = [];
   bool _isLoadingMessages = false;
   
-  // Ключи шифрования
   late encrypt.Key _encryptionKey;
   late encrypt.IV _iv;
   
-  // Фиксированные значения ключей, взятые из chat_bloc.dart
   static const String _fixedKeyString = 'MonkeyMessengerFixedEncryptionKey123';
   static const String _fixedIvString = 'MonkeyMsgFixedIV';
 
@@ -41,12 +39,10 @@ class _AdminChatDetailScreenState extends State<AdminChatDetailScreen> {
   
   void _initEncryption() {
     try {
-      // Используем фиксированные ключи
       _encryptionKey = encrypt.Key(utf8.encode(_fixedKeyString).sublist(0, 32));
       _iv = encrypt.IV(utf8.encode(_fixedIvString).sublist(0, 16));
     } catch (e) {
       _showErrorSnackBar('Ошибка инициализации шифрования: $e');
-      // Создаем ключи из фиксированных строк в случае ошибки
       _encryptionKey = encrypt.Key(utf8.encode(_fixedKeyString).sublist(0, 32));
       _iv = encrypt.IV(utf8.encode(_fixedIvString).sublist(0, 16));
     }
@@ -94,38 +90,6 @@ class _AdminChatDetailScreenState extends State<AdminChatDetailScreen> {
         _showErrorSnackBar('Ошибка при загрузке сообщений: $e');
       }
     }
-  }
-
-  Future<void> _deleteMessage(MessageEntity message) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection(AppConstants.chatsCollection)
-          .doc(message.chatId)
-          .collection(AppConstants.messagesCollection)
-          .doc(message.id)
-          .delete();
-
-      if (mounted) {
-        setState(() {
-          _messages.removeWhere((m) => m.id == message.id);
-        });
-        _showSuccessSnackBar('Сообщение удалено');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Ошибка при удалении сообщения: $e');
-      }
-    }
-  }
-
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -181,40 +145,9 @@ class _AdminChatDetailScreenState extends State<AdminChatDetailScreen> {
               ],
             ),
             isThreeLine: true,
-            trailing: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _showDeleteMessageDialog(message),
-            ),
           ),
         );
       },
-    );
-  }
-
-  void _showDeleteMessageDialog(MessageEntity message) {
-    final displayText = message.type == MessageType.text && message.text != null
-        ? _decryptMessage(message.text!)
-        : (message.text ?? '');
-        
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Удалить сообщение'),
-        content: Text('Вы уверены, что хотите удалить сообщение "$displayText"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _deleteMessage(message);
-            },
-            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 

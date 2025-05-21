@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:monkey_messanger/models/chat_entity.dart';
-import 'package:monkey_messanger/models/message_entity.dart';
 import 'package:monkey_messanger/utils/app_colors.dart';
 import 'package:monkey_messanger/utils/app_constants.dart';
 import 'package:monkey_messanger/screens/admin/admin_chat_detail_screen.dart';
@@ -77,21 +76,18 @@ class _ChatManagementScreenState extends State<ChatManagementScreen> {
 
   Future<void> _deleteChat(ChatEntity chat) async {
     try {
-      // Get messages in the chat
       final messagesSnapshot = await FirebaseFirestore.instance
           .collection(AppConstants.chatsCollection)
           .doc(chat.id)
           .collection(AppConstants.messagesCollection)
           .get();
 
-      // Delete all messages
       final batch = FirebaseFirestore.instance.batch();
       for (var doc in messagesSnapshot.docs) {
         batch.delete(doc.reference);
       }
       await batch.commit();
 
-      // Delete the chat
       await FirebaseFirestore.instance
           .collection(AppConstants.chatsCollection)
           .doc(chat.id)

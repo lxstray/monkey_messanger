@@ -33,12 +33,10 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
   @override
   void initState() {
     super.initState();
-    // Automatically focus on the first input field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusScope.of(context).requestFocus(_focusNodes[0]);
       
-      // Автоматически показываем диалог с тестовым кодом
-      _showTestCode();
+      _checkExistingCode();
     });
   }
 
@@ -71,14 +69,11 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
     });
 
     try {
-      // Use the AuthBloc to verify the code
       final authBloc = context.read<AuthBloc>();
       final isValid = await authBloc.verify2FACode(widget.email, _code);
       
       if (isValid) {
-        // Code verification successful - AuthBloc will update the state
         if (mounted) {
-          // Nothing to do here, AuthBloc state change will navigate to the main screen
         }
       } else {
         setState(() {
@@ -101,8 +96,9 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
       final sent = await emailService.sendVerificationCode(widget.email);
       
       if (sent && mounted) {
-        // Показываем диалог с тестовым кодом
-        _showTestCode();
+        if (emailService.lastGeneratedCode != null) {
+          _showTestCode();
+        }
         
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -131,7 +127,13 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
     }
   }
 
-  // Показать диалог с тестовым кодом для разработки и тестирования
+  void _checkExistingCode() {
+    final emailService = context.read<EmailService>();
+    if (emailService.lastGeneratedCode != null) {
+      _showTestCode();
+    }
+  }
+
   void _showTestCode() {
      AppLogger.info('Test code requested for ${widget.email}. Display mechanism needed.');
   }
@@ -222,7 +224,6 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         onChanged: (value) {
-                          // Clear error message when user starts typing
                           if (_errorMessage != null) {
                             setState(() {
                               _errorMessage = null;
@@ -233,7 +234,6 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
                             FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
                           }
                           
-                          // Auto-verify when all fields are filled
                           if (index == 5 && value.isNotEmpty) {
                             _verifyCode();
                           }

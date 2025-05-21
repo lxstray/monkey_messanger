@@ -15,11 +15,11 @@ class ChatEntity extends Equatable {
   final DateTime lastMessageTime;
   final String? lastMessageSenderId;
   final bool isGroup;
-  final Map<String, int> unreadMessageCount; // Map<userId, unreadCount>
+  final Map<String, int> unreadMessageCount;
   final DateTime createdAt;
   final String? createdBy;
-  final Map<String, bool>? typing; // Map<userId, isTyping>
-  final List<String>? adminIds; // Список администраторов группы
+  final Map<String, bool>? typing; 
+  final List<String>? adminIds; 
 
   const ChatEntity({
     required this.id,
@@ -37,7 +37,6 @@ class ChatEntity extends Equatable {
     this.adminIds,
   });
 
-  // Копирование объекта с возможностью изменения отдельных полей
   ChatEntity copyWith({
     String? id,
     String? name,
@@ -70,7 +69,6 @@ class ChatEntity extends Equatable {
     );
   }
 
-  // Преобразование в Map для Firebase
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -80,7 +78,7 @@ class ChatEntity extends Equatable {
       'lastMessageText': lastMessageText,
       'lastMessageTime': lastMessageTime.millisecondsSinceEpoch,
       'lastMessageSenderId': lastMessageSenderId,
-      'lastMessageType': 0, // По умолчанию текст
+      'lastMessageType': 0, 
       'isGroup': isGroup,
       'unreadMessageCount': unreadMessageCount,
       'createdAt': createdAt.millisecondsSinceEpoch,
@@ -90,9 +88,7 @@ class ChatEntity extends Equatable {
     };
   }
 
-  // Создание объекта из Map из Firebase
   factory ChatEntity.fromMap(Map<String, dynamic> map) {
-    // Обработка времени, которое может быть в разных форматах
     DateTime _parseDateTime(dynamic time) {
       if (time is Timestamp) {
         return time.toDate();
@@ -102,7 +98,6 @@ class ChatEntity extends Equatable {
       return DateTime.now();
     }
 
-    // Обработка текста последнего сообщения (совместимость со старыми данными)
     String _getLastMessageText(Map<String, dynamic> data) {
       if (data.containsKey('lastMessageText') && data['lastMessageText'] != null) {
         return data['lastMessageText'] as String;
@@ -110,7 +105,6 @@ class ChatEntity extends Equatable {
       return '';
     }
 
-    // Получаем список админов или создаем новый с создателем группы
     List<String>? adminIds;
     if (map.containsKey('adminIds') && map['adminIds'] != null) {
       adminIds = List<String>.from(map['adminIds']);
@@ -136,22 +130,17 @@ class ChatEntity extends Equatable {
     );
   }
 
-  // Проверка, является ли участник админом группы
   bool isAdmin(String userId) {
-    // Проверяем новое поле adminIds, если оно есть
     if (adminIds != null && adminIds!.contains(userId)) {
       return true;
     }
-    // Обратная совместимость - создатель всегда админ
     return createdBy == userId;
   }
 
-  // Получение имени чата для конкретного пользователя
   String getDisplayName(String currentUserId, Map<String, String> userNames) {
     if (isGroup) {
       return name;
     } else {
-      // Для личного чата показываем имя собеседника
       String otherUserId = participantIds.firstWhere(
         (id) => id != currentUserId,
         orElse: () => '',
@@ -160,12 +149,10 @@ class ChatEntity extends Equatable {
     }
   }
 
-  // Получение аватара чата для конкретного пользователя
   String? getDisplayImage(String currentUserId, Map<String, String?> userImages) {
     if (isGroup || imageUrl != null) {
       return imageUrl;
     } else {
-      // Для личного чата показываем аватар собеседника
       String otherUserId = participantIds.firstWhere(
         (id) => id != currentUserId,
         orElse: () => '',
@@ -174,22 +161,18 @@ class ChatEntity extends Equatable {
     }
   }
 
-  // Проверка на наличие непрочитанных сообщений
   bool hasUnreadMessages(String userId) {
     return (unreadMessageCount[userId] ?? 0) > 0;
   }
 
-  // Получение количества непрочитанных сообщений
   int getUnreadCount(String userId) {
     return unreadMessageCount[userId] ?? 0;
   }
 
-  // Проверка, печатает ли кто-то в данный момент
   bool isSomeoneTyping() {
     return typing?.values.any((isTyping) => isTyping) ?? false;
   }
 
-  // Получение списка пользователей, которые печатают
   List<String> getTypingUsers() {
     if (typing == null) return [];
     

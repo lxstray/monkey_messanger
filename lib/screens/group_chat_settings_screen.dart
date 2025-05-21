@@ -38,14 +38,10 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
   List<ContactEntity> _userContacts = [];
   bool _loadingContacts = false;
   
-  // Создаем экземпляр репозитория чата
   late final ChatRepositoryImpl _chatRepository;
-  // Подписка на обновления чата
   Stream<ChatEntity?>? _chatStream;
-  // Текущие данные чата
   ChatEntity? _currentChatEntity;
   
-  // Создаем экземпляр StorageService для работы с Supabase
   final StorageService _storageService = StorageService();
 
   bool get _isAdmin => (_currentChatEntity ?? widget.chatEntity).isAdmin(widget.currentUser.id);
@@ -58,14 +54,11 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       storage: FirebaseStorage.instance,
     );
     
-    // Инициализируем начальные данные
     _currentChatEntity = widget.chatEntity;
     _groupNameController.text = widget.chatEntity.name;
     
-    // Подписываемся на обновления чата
     _chatStream = _chatRepository.getChatById(widget.chatId);
     
-    // Загружаем первоначальные данные
     _loadChatParticipants();
     
     if (_isAdmin) {
@@ -80,7 +73,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     super.dispose();
   }
   
-  // Загрузка контактов пользователя
   Future<void> _loadUserContacts() async {
     setState(() {
       _loadingContacts = true;
@@ -91,10 +83,8 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
         firestore: FirebaseFirestore.instance,
       );
       
-      // Подписываемся на стрим контактов
       final contactsStream = contactRepository.getUserContacts(widget.currentUser.id);
       
-      // Получаем первое значение из стрима
       final contacts = await contactsStream.first;
       
       setState(() {
@@ -149,7 +139,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     }
 
     if (_groupNameController.text.trim() == (_currentChatEntity ?? widget.chatEntity).name) {
-      return; // Имя не изменилось
+      return;
     }
 
     setState(() {
@@ -192,13 +182,11 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     });
 
     try {
-      // Используем StorageService вместо напрямую Firebase Storage
       final imageUrl = await _storageService.uploadImage(
         _selectedImage!, 
         widget.chatId
       );
       
-      // Проверяем результат загрузки
       if (imageUrl.isEmpty) {
         throw Exception('Не удалось загрузить изображение');
       }
@@ -207,7 +195,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
 
       setState(() {
         _isLoading = false;
-        _selectedImage = null; // Сбрасываем выбранное изображение после успешной загрузки
       });
 
       if (mounted) {
@@ -228,9 +215,9 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1000, // Ограничиваем размер изображения
+        maxWidth: 1000, 
         maxHeight: 1000,
-        imageQuality: 85, // Снижаем качество для экономии трафика
+        imageQuality: 85, 
       );
       
       if (pickedFile != null) {
@@ -256,7 +243,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
 
     final user = _chatParticipants.firstWhere((user) => user.id == userId);
     
-    // Показать диалог подтверждения
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -300,7 +286,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     try {
       await _chatRepository.removeUserFromGroupChat(widget.chatId, userId);
 
-      // Обновляем список участников
       await _loadChatParticipants();
 
       if (mounted) {
@@ -317,7 +302,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     }
   }
   
-  // Добавление пользователя в качестве администратора
   Future<void> _toggleUserAdmin(String userId, bool makeAdmin) async {
     if (!_isAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -326,7 +310,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       return;
     }
     
-    // Проверяем, не является ли пользователь создателем группы
     if (userId == (_currentChatEntity ?? widget.chatEntity).createdBy) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Невозможно изменить права создателя группы')),
@@ -336,7 +319,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     
     final user = _chatParticipants.firstWhere((user) => user.id == userId);
     
-    // Показать диалог подтверждения
     final String actionText = makeAdmin ? 'назначить' : 'снять с';
     final confirmed = await showDialog<bool>(
       context: context,
@@ -385,9 +367,8 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
         await _chatRepository.removeGroupAdmin(widget.chatId, widget.currentUser.id, userId);
       }
 
-      // Для простоты обновляем весь объект чата через навигацию
       if (mounted) {
-        Navigator.pop(context, true); // Возвращаемся с флагом обновления
+        Navigator.pop(context, true); 
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -441,7 +422,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       return;
     }
 
-    // Загрузка данных UserEntity для доступных контактов
     Map<String, UserEntity> availableContactsUserData = {};
     try {
       final contactRepository = ContactRepositoryImpl(
@@ -458,7 +438,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
           const SnackBar(content: Text('Ошибка загрузки данных контактов')),
         );
       }
-      return; // Прерываем выполнение, если не удалось загрузить данные
+      return;
     }
 
     final ContactEntity? selectedContact = await showDialog<ContactEntity>(
@@ -472,21 +452,18 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
           ),
           content: SizedBox(
             width: double.maxFinite,
-            height: 300, // Можно сделать адаптивным или убрать ограничение
+            height: 300,
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: availableContacts.length,
               itemBuilder: (context, index) {
                 final contact = availableContacts[index];
-                // Получаем UserEntity для текущего контакта из загруженных данных
                 final contactUser = availableContactsUserData[contact.contactId];
-                // Определяем URL для аватара
                 final displayPhotoUrl = contactUser?.photoUrl ?? contact.photoUrl;
                 
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: const Color(0xFF4A90E2),
-                    // Используем displayPhotoUrl
                     child: displayPhotoUrl != null && displayPhotoUrl.isNotEmpty
                         ? ClipOval(
                             child: Image.network(
@@ -543,7 +520,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     try {
       await _chatRepository.addUserToGroupChat(widget.chatId, selectedContact.contactId);
 
-      // Обновляем список участников
       await _loadChatParticipants();
 
       if (mounted) {
@@ -561,7 +537,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
   }
 
   Future<void> _leaveGroup() async {
-    // Показать диалог подтверждения
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -636,23 +611,18 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
         stream: _chatStream,
         initialData: widget.chatEntity,
         builder: (context, snapshot) {
-          // Обновляем текущие данные чата при получении новых данных
           if (snapshot.hasData && snapshot.data != null) {
             _currentChatEntity = snapshot.data;
             
-            // Обновляем список участников если состав изменился
             if (!_isLoading && !_participantsMatch(snapshot.data!.participantIds)) {
-              // Отложенное обновление списка участников, чтобы избежать вызова setState во время построения
               Future.microtask(() => _loadChatParticipants());
             }
             
-            // Обновляем поле названия чата, только если пользователь не редактирует его сейчас
             if (!_groupNameFocusNode.hasFocus && _groupNameController.text != snapshot.data!.name) {
               _groupNameController.text = snapshot.data!.name;
             }
           }
           
-          // В случае ошибки потока, показываем ошибку
           if (snapshot.hasError) {
             return Center(
               child: Padding(
@@ -683,7 +653,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
     );
   }
   
-  // Проверяем, соответствуют ли текущие участники в списке новому списку из чата
   bool _participantsMatch(List<String> newParticipantIds) {
     if (newParticipantIds.length != _chatParticipants.length) {
       return false;
@@ -746,7 +715,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Изображение группы
           Center(
             child: GestureDetector(
               onTap: _isAdmin ? _pickImage : null,
@@ -793,7 +761,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Название группы
           if (_isAdmin)
             TextField(
               controller: _groupNameController,
@@ -835,7 +802,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
             ),
           const SizedBox(height: 12),
 
-          // Создатель группы
           Card(
             color: const Color(0xFF2A2A2A),
             child: ListTile(
@@ -878,7 +844,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Список участников
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -906,7 +871,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
             itemBuilder: (context, index) {
               final participant = _chatParticipants[index];
               final isCreator = participant.id == (_currentChatEntity ?? widget.chatEntity).createdBy;
-              // Проверяем, является ли пользователь админом
               final isParticipantAdmin = (_currentChatEntity ?? widget.chatEntity).isAdmin(participant.id);
               
               return Card(
@@ -948,7 +912,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                     participant.email,
                     style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
                   ),
-                  // Меню действий для администраторов
                   trailing: participant.id != widget.currentUser.id && _isAdmin
                       ? PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
@@ -964,8 +927,7 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                           itemBuilder: (context) {
                             final items = <PopupMenuEntry<String>>[];
                             
-                            // Опция для назначения/снятия админа
-                            if (!isCreator) { // Создателя нельзя менять
+                            if (!isCreator) { 
                               if (isParticipantAdmin) {
                                 items.add(
                                   const PopupMenuItem<String>(
@@ -994,14 +956,12 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
                                 );
                               }
                               
-                              // Добавляем разделитель
                               if (items.isNotEmpty) {
                                 items.add(const PopupMenuDivider());
                               }
                             }
                             
-                            // Опция для удаления участника
-                            if (!isCreator) { // Создателя нельзя удалить
+                            if (!isCreator) { 
                               items.add(
                                 const PopupMenuItem<String>(
                                   value: 'remove',
@@ -1027,7 +987,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Кнопка "Покинуть группу"
           Center(
             child: ElevatedButton.icon(
               onPressed: _leaveGroup,
@@ -1045,7 +1004,6 @@ class _GroupChatSettingsScreenState extends State<GroupChatSettingsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Если выбрано изображение, добавляем кнопку "Сохранить изображение"
           if (_selectedImage != null && _isAdmin)
             Center(
               child: ElevatedButton.icon(

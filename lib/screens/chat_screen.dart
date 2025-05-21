@@ -51,14 +51,10 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isUploading = false;
   bool _isDownloading = false;
   
-  // Репозиторий чата для получения обновлений
   late final ChatRepositoryImpl _chatRepository;
-  // Поток обновлений чата
   Stream<ChatEntity?>? _chatStream;
-  // Текущие данные чата
   ChatEntity? _currentChatEntity;
   
-  // Переменные для работы с голосовыми сообщениями
   final _audioRecorder = AudioRecorder();
   final _audioPlayer = AudioPlayer();
   bool _isRecording = false;
@@ -74,20 +70,16 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _initAudioRecorder();
     
-    // Инициализируем репозиторий
     _chatRepository = ChatRepositoryImpl(
       firestore: FirebaseFirestore.instance,
       storage: FirebaseStorage.instance,
     );
     
-    // Подписываемся на обновления чата
     _chatStream = _chatRepository.getChatById(widget.chatId);
     
-    // Загружаем сообщения
     context.read<ChatBloc>().add(LoadMessagesEvent(widget.chatId));
   }
   
-  // Инициализация рекордера
   Future<void> _initAudioRecorder() async {
     try {
       final status = await Permission.microphone.request();
@@ -101,7 +93,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
   
-  // Начать запись голосового сообщения
   Future<void> _startRecording() async {
     if (!_isRecordingInitialized) {
       await _initAudioRecorder();
@@ -117,11 +108,9 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     
     try {
-      // Создаем временную директорию для записи
       final Directory tempDir = await getTemporaryDirectory();
       final String filePath = '${tempDir.path}/voice_message_${DateTime.now().millisecondsSinceEpoch}.m4a';
       
-      // Проверяем, есть ли нужные разрешения
       if (!await Permission.microphone.isGranted) {
         final status = await Permission.microphone.request();
         if (!status.isGranted) {
@@ -135,7 +124,6 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       }
       
-      // Проверяем, доступен ли рекордер
       if (!(await _audioRecorder.hasPermission())) {
         AppLogger.error('Recording permission not granted', null, StackTrace.current);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,7 +135,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
       
-      // Начинаем запись
       await _audioRecorder.start(
         RecordConfig(),
         path: filePath,
@@ -157,12 +144,10 @@ class _ChatScreenState extends State<ChatScreen> {
       _recordingStartTime = DateTime.now();
       _recordingDuration = 0;
       
-      // Запускаем таймер для обновления длительности записи
       setState(() {
         _isRecording = true;
       });
       
-      // Запускаем таймер обновления длительности записи
       _startRecordingTimer();
       
     } catch (e) {
@@ -176,7 +161,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
   
-  // Таймер для обновления длительности записи
   void _startRecordingTimer() {
     Future.delayed(const Duration(seconds: 1), () {
       if (_isRecording && mounted) {
@@ -188,12 +172,10 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
   
-  // Остановить запись и отправить голосовое сообщение
   Future<void> _stopRecordingAndSend() async {
     if (!_isRecording) return;
     
     try {
-      // Останавливаем запись
       final result = await _audioRecorder.stop();
       
       setState(() {
@@ -211,7 +193,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
       
-      // Проверяем длительность записи
       if (_recordingDuration < 1) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -233,7 +214,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
       
-      // Загружаем файл в хранилище
       final url = await _storageService.uploadVoiceMessage(file, widget.chatId);
       
       if (url.isEmpty) {
@@ -246,7 +226,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
       
-      // Отправляем сообщение
       context.read<ChatBloc>().add(SendMessageEvent(
         chatId: widget.chatId,
         content: url,
@@ -272,10 +251,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
   
-  // Воспроизведение голосового сообщения
   Future<void> _playVoiceMessage(String url, String messageId) async {
     if (_isPlaying && _currentlyPlayingId == messageId) {
-      // Если уже воспроизводится это сообщение, останавливаем
       await _audioPlayer.stop();
       setState(() {
         _isPlaying = false;
@@ -285,12 +262,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     
     try {
-      // Если воспроизводится другое сообщение, останавливаем его
       if (_isPlaying) {
         await _audioPlayer.stop();
       }
       
-      // Воспроизводим новое сообщение
       await _audioPlayer.play(UrlSource(url));
       
       setState(() {
@@ -298,7 +273,6 @@ class _ChatScreenState extends State<ChatScreen> {
         _currentlyPlayingId = messageId;
       });
       
-      // Обработчик завершения воспроизведения
       _audioPlayer.onPlayerComplete.listen((event) {
         if (mounted) {
           setState(() {
@@ -319,7 +293,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
   
-  // Форматирование времени записи
   String _formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
@@ -737,7 +710,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               ),
               onChanged: (text) {
-                // Trigger rebuild when text changes
                 setState(() {});
               },
             ),
@@ -1021,282 +993,98 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // Метод для скачивания медиафайлов
   Future<void> _downloadMedia(String url, String fileName) async {
     if (_isDownloading) return;
-    
+
     setState(() => _isDownloading = true);
-    
+    AppLogger.info('Starting download for: $fileName from $url');
+
     try {
-      // Проверяем разрешения на мобильных устройствах
-      if (Platform.isAndroid) {
-        // Определяем версию Android
-        int? sdkVersion;
-        try {
-          final deviceInfoPlugin = DeviceInfoPlugin();
-          final androidInfo = await deviceInfoPlugin.androidInfo;
-          sdkVersion = androidInfo.version.sdkInt;
-          AppLogger.info('Android SDK версия: $sdkVersion');
-        } catch (e) {
-          // Если не удалось получить версию, предполагаем, что версия < 33
-          sdkVersion = 30;
-          AppLogger.error('Ошибка при получении SDK версии', e, StackTrace.current);
+      bool permissionsGranted = await _checkAndRequestPermissions(fileName);
+      if (!permissionsGranted) {
+        AppLogger.warning('Permissions not granted. Aborting download.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Требуются разрешения для сохранения файла'),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
-        
-        // Запрашиваем разрешения в зависимости от версии Android
-        if (sdkVersion >= 33) {
-          // Android 13+ (API 33): запрашиваем новые типы разрешений
-          if (fileName.toLowerCase().endsWith('.jpg') || 
-              fileName.toLowerCase().endsWith('.jpeg') || 
-              fileName.toLowerCase().endsWith('.png')) {
-            final status = await Permission.photos.request();
-            if (!status.isGranted) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Требуется разрешение на доступ к фотографиям'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-              setState(() => _isDownloading = false);
-              return;
-            }
-          } else if (fileName.toLowerCase().endsWith('.mp3') || 
-                    fileName.toLowerCase().endsWith('.wav')) {
-            final status = await Permission.audio.request();
-            if (!status.isGranted) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Требуется разрешение на доступ к аудиофайлам'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-              setState(() => _isDownloading = false);
-              return;
-            }
-          } else if (fileName.toLowerCase().endsWith('.mp4') || 
-                    fileName.toLowerCase().endsWith('.mov')) {
-            final status = await Permission.videos.request();
-            if (!status.isGranted) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Требуется разрешение на доступ к видеофайлам'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-              setState(() => _isDownloading = false);
-              return;
-            }
-          } else {
-            // Для других типов файлов на Android 13+ проверяем storage
-            final status = await Permission.storage.request();
-            if (!status.isGranted) {
-              AppLogger.info('Storage permission not granted, but proceeding anyway on Android 13+');
-              // На Android 13+ мы все равно можем сохранять файлы в специальную директорию приложения
-            }
-          }
-        } else {
-          // Android 12 и ниже: используем старые разрешения
-          final storageStatus = await Permission.storage.request();
-          if (!storageStatus.isGranted) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Требуется разрешение на доступ к хранилищу'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            setState(() => _isDownloading = false);
-            return;
-          }
-        }
-      } else if (Platform.isIOS) {
-        // На iOS запрашиваем разрешение на доступ к галерее
-        final photosStatus = await Permission.photos.request();
-        if (!photosStatus.isGranted) {
-          AppLogger.info('Photos permission not granted, but proceeding for non-image files on iOS');
-          // На iOS мы все равно можем сохранять в директорию приложения
-        }
+        setState(() => _isDownloading = false);
+        return;
       }
-      
-      // Получаем путь к папке Downloads
-      Directory? downloadsDir;
-      
-      if (Platform.isAndroid) {
-        int? sdkVersion;
-        try {
-          final deviceInfoPlugin = DeviceInfoPlugin();
-          final androidInfo = await deviceInfoPlugin.androidInfo;
-          sdkVersion = androidInfo.version.sdkInt;
-        } catch (e) {
-          sdkVersion = 30;
-          AppLogger.error('Ошибка при получении SDK версии', e, StackTrace.current);
-        }
-        
-        try {
-          AppLogger.info('Пытаемся получить путь к Downloads на Android');
-          
-          // Сначала пробуем получить путь через ExternalPath
-          try {
-            List<String>? externalStoragePaths = await ExternalPath.getExternalStorageDirectories();
-            if (externalStoragePaths != null && externalStoragePaths.isNotEmpty) {
-              final downloadDirPath = '${externalStoragePaths[0]}/Download';
-              final downloadDir = Directory(downloadDirPath);
-              if (await downloadDir.exists()) {
-                downloadsDir = downloadDir;
-                AppLogger.info('Путь к Downloads через ExternalPath: ${downloadsDir.path}');
-                return;
-              }
-            }
-          } catch (e) {
-            AppLogger.error('Ошибка при получении пути через ExternalPath', e, StackTrace.current);
-          }
-          
-          // На Android 10+ пробуем получить путь через getExternalStorageDirectory
-          if (sdkVersion >= 29) {
-            final externalDir = await getExternalStorageDirectory();
-            if (externalDir != null) {
-              AppLogger.info('Получен путь через getExternalStorageDirectory: ${externalDir.path}');
-              // Пытаемся найти папку Download ближе к корню
-              Directory? foundDir = externalDir;
-              List<String> pathSegments = externalDir.path.split('/');
-              
-              // Ищем Android
-              int androidIndex = pathSegments.indexOf('Android');
-              if (androidIndex != -1 && androidIndex > 0) {
-                // Идем до Android и затем добавляем Downloads
-                String pathToStorage = pathSegments.sublist(0, androidIndex).join('/');
-                Directory possibleDownloadsDir = Directory('$pathToStorage/Download');
-                if (await possibleDownloadsDir.exists()) {
-                  foundDir = possibleDownloadsDir;
-                  AppLogger.info('Найдена папка Download: ${foundDir.path}');
-                }
-              }
-              
-              downloadsDir = Directory('${foundDir.path}/Download');
-              AppLogger.info('Будет использована директория: ${downloadsDir.path}');
-            } else {
-              AppLogger.info('getExternalStorageDirectory вернул null, используем альтернативный путь');
-              // Альтернативный путь
-              downloadsDir = Directory('/storage/emulated/0/Download');
-            }
-          } else {
-            // На Android до 10 версии используем стандартную директорию Downloads
-            downloadsDir = Directory('/storage/emulated/0/Download');
-            AppLogger.info('Используем стандартный путь: ${downloadsDir.path}');
-          }
-        } catch (e) {
-          AppLogger.error('Ошибка при определении пути к Downloads', e, StackTrace.current);
-          // Запасной вариант - используем директорию приложения
-          final appDocDir = await getApplicationDocumentsDirectory();
-          downloadsDir = Directory('${appDocDir.path}/Downloads');
-          AppLogger.info('Используем запасной путь: ${downloadsDir.path}');
-        }
-      } else if (Platform.isIOS) {
-        final Directory appDocDir = await getApplicationDocumentsDirectory();
-        downloadsDir = Directory('${appDocDir.path}/Downloads');
-        AppLogger.info('iOS директория для загрузок: ${downloadsDir.path}');
-      } else if (Platform.isWindows) {
-        // На Windows используем путь к папке Downloads
-        final String? userProfile = Platform.environment['USERPROFILE'];
-        if (userProfile != null) {
-          downloadsDir = Directory('$userProfile\\Downloads');
-          AppLogger.info('Windows директория для загрузок: ${downloadsDir.path}');
-        } else {
-          final appDocDir = await getApplicationDocumentsDirectory();
-          downloadsDir = Directory('${appDocDir.path}\\Downloads');
-          AppLogger.info('Альтернативная Windows директория: ${downloadsDir.path}');
-        }
-      } else if (Platform.isMacOS || Platform.isLinux) {
-        downloadsDir = await getDownloadsDirectory();
-        AppLogger.info('MacOS/Linux директория для загрузок: ${downloadsDir?.path}');
-      } else {
-        final Directory appDocDir = await getApplicationDocumentsDirectory();
-        downloadsDir = appDocDir;
-        AppLogger.info('Директория приложения для загрузок: ${downloadsDir.path}');
-      }
-      
+
+      Directory? downloadsDir = await _getDownloadsDirectory();
       if (downloadsDir == null) {
-        throw Exception('Could not access downloads directory');
+        throw Exception('Не удалось получить доступ к папке загрузок');
       }
-      
-      // Создаем директорию, если она не существует
+
       if (!await downloadsDir.exists()) {
         await downloadsDir.create(recursive: true);
       }
-      
-      // Создаем уникальное имя файла
+
+      // Generate unique filename
       String uniqueFileName = fileName;
-      File file = File('${downloadsDir.path}${Platform.pathSeparator}$uniqueFileName');
+      File file = File(path.join(downloadsDir.path, uniqueFileName));
       int count = 1;
       while (await file.exists()) {
         final String extension = path.extension(fileName);
         final String nameWithoutExtension = path.basenameWithoutExtension(fileName);
         uniqueFileName = '${nameWithoutExtension}_$count$extension';
-        file = File('${downloadsDir.path}${Platform.pathSeparator}$uniqueFileName');
+        file = File(path.join(downloadsDir.path, uniqueFileName));
         count++;
       }
-      
-      // Скачиваем файл
+
+      // Download file
       final response = await http.get(Uri.parse(url));
       if (response.statusCode != 200) {
-        throw Exception('Failed to download file: HTTP ${response.statusCode}');
+        throw Exception('Ошибка загрузки файла: HTTP ${response.statusCode}');
       }
-      
-      // Сохраняем файл
+
+      // Save file
       await file.writeAsBytes(response.bodyBytes);
-      
-      // Для Android пытаемся обновить галерею, если это медиафайл
+      AppLogger.info('File saved successfully: ${file.path}');
+
+      // Scan media file on Android
       if (Platform.isAndroid) {
-        bool isMediaFile = fileName.toLowerCase().endsWith('.jpg') || 
-                          fileName.toLowerCase().endsWith('.jpeg') || 
-                          fileName.toLowerCase().endsWith('.png') ||
-                          fileName.toLowerCase().endsWith('.mp4') || 
-                          fileName.toLowerCase().endsWith('.mp3');
-                          
+        bool isMediaFile = ['.jpg', '.jpeg', '.png', '.mp4', '.mov', '.mp3', '.wav']
+            .any((ext) => fileName.toLowerCase().endsWith(ext));
+
         if (isMediaFile) {
           try {
             await MediaScanner.loadMedia(path: file.path);
-            AppLogger.info('MediaScanner обновил галерею');
-          } catch (e) {
-            AppLogger.error('Ошибка при сканировании медиафайла', e, StackTrace.current);
-            // Продолжаем выполнение даже если MediaScanner завершился с ошибкой
+            AppLogger.info('Media file scanned successfully');
+          } catch (e, s) {
+            AppLogger.error('Failed to scan media file', e, s);
           }
         }
       }
-      
-      AppLogger.info('File downloaded successfully: ${file.path}');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Файл сохранен: $uniqueFileName'),
+            content: Text('Файл сохранен в: ${file.path}'),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'ОТКРЫТЬ',
               textColor: Colors.white,
               onPressed: () {
-                if (Platform.isAndroid || Platform.isIOS) {
-                  Share.shareXFiles([XFile(file.path)]);
-                }
+                Share.shareXFiles([XFile(file.path)], text: 'Открыт файл $uniqueFileName');
               },
             ),
           ),
         );
       }
-    } catch (e) {
-      AppLogger.error('Failed to download file', e, StackTrace.current);
+    } catch (e, s) {
+      AppLogger.error('Failed to download file "$fileName"', e, s);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка загрузки файла: ${e.toString().split('\n').first}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -1305,6 +1093,173 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() => _isDownloading = false);
       }
     }
+  }
+
+  Future<bool> _checkAndRequestPermissions(String fileName) async {
+    if (Platform.isAndroid) {
+      final deviceInfo = await DeviceInfoPlugin().androidInfo;
+      final sdkInt = deviceInfo.version.sdkInt;
+
+      List<Permission> permissionsToRequest = [];
+
+      if (sdkInt >= 33) { 
+        AppLogger.info('Android SDK $sdkInt >= 33. Requesting media specific permissions.');
+        if (_isImageFile(fileName)) {
+          permissionsToRequest.add(Permission.photos);
+        } else if (_isVideoFile(fileName)) {
+          permissionsToRequest.add(Permission.videos);
+        } else if (_isAudioFile(fileName)) {
+          permissionsToRequest.add(Permission.audio);
+           AppLogger.info('File type is not media-specific. No specific permission needed on SDK 33+ for Downloads via MediaStore.');
+           return true; 
+        }
+      } else { 
+        AppLogger.info('Android SDK $sdkInt < 33. Requesting storage permission.');
+        permissionsToRequest.add(Permission.storage);
+      }
+
+      if (permissionsToRequest.isNotEmpty) {
+        Map<Permission, PermissionStatus> statuses = await permissionsToRequest.request();
+        bool allGranted = statuses.values.every((status) => status.isGranted);
+        if (!allGranted) {
+           AppLogger.warning('Permissions not granted: $statuses');
+           statuses.forEach((perm, status) {
+               if (!status.isGranted) {
+                   AppLogger.error('Permission denied: $perm');
+               }
+           });
+        }
+        return allGranted;
+      } else {
+          return true; 
+      }
+
+    } else if (Platform.isIOS) {
+      if (_isImageFile(fileName) || _isVideoFile(fileName)) {
+        AppLogger.info('iOS: Requesting Photos permission for media file.');
+        final status = await Permission.photos.request();
+        if (!status.isGranted) {
+            AppLogger.warning('iOS Photos permission denied.');
+        }
+        return true;
+      }
+      return true; 
+    }
+
+    return true;
+  }
+
+  Future<Directory?> _getDownloadsDirectory() async {
+    Directory? downloadsDir;
+    try {
+      if (Platform.isAndroid) {
+        AppLogger.info('Attempting to get Downloads directory on Android...');
+        
+        // Try to get the public downloads directory first
+        downloadsDir = await getExternalStorageDirectory();
+        if (downloadsDir != null) {
+          // Navigate up to the root of external storage
+          String path = downloadsDir.path;
+          List<String> pathParts = path.split('/');
+          while (pathParts.isNotEmpty && pathParts.last != 'Android') {
+            pathParts.removeLast();
+          }
+          if (pathParts.isNotEmpty) {
+            pathParts.removeLast(); // Remove 'Android'
+            String externalPath = pathParts.join('/');
+            downloadsDir = Directory('$externalPath/Download');
+            AppLogger.info('Using Android public Downloads directory: ${downloadsDir.path}');
+            
+            // Check if directory exists and is writable
+            if (await downloadsDir.exists() && await _isDirectoryWritable(downloadsDir)) {
+              return downloadsDir;
+            }
+          }
+        }
+        
+        // Fallback to app-specific directory
+        final Directory appDocDir = await getApplicationDocumentsDirectory();
+        downloadsDir = Directory(path.join(appDocDir.path, 'Downloads'));
+        AppLogger.info('Using app-specific directory as fallback: ${downloadsDir.path}');
+        
+      } else if (Platform.isIOS) {
+        final Directory appDocDir = await getApplicationDocumentsDirectory();
+        downloadsDir = Directory(path.join(appDocDir.path, 'Downloads'));
+        AppLogger.info('Using app documents directory for Downloads on iOS: ${downloadsDir.path}');
+        
+      } else if (Platform.isWindows) {
+        final String? downloadsPath = await getDownloadsPath();
+        if (downloadsPath != null) {
+          downloadsDir = Directory(downloadsPath);
+          AppLogger.info('Using Windows Downloads directory: ${downloadsDir.path}');
+        } else {
+          final Directory appDocDir = await getApplicationDocumentsDirectory();
+          downloadsDir = Directory(path.join(appDocDir.path, 'Downloads'));
+          AppLogger.warning('Using app documents directory as fallback on Windows: ${downloadsDir.path}');
+        }
+      } else {
+        final Directory appDocDir = await getApplicationDocumentsDirectory();
+        downloadsDir = Directory(path.join(appDocDir.path, 'Downloads'));
+        AppLogger.warning('Using app documents directory as fallback: ${downloadsDir.path}');
+      }
+      
+      // Create directory if it doesn't exist
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+        AppLogger.info('Created downloads directory: ${downloadsDir.path}');
+      }
+      
+    } catch (e, s) {
+      AppLogger.error('Error getting downloads directory', e, s);
+      return null;
+    }
+    return downloadsDir;
+  }
+
+  Future<bool> _isDirectoryWritable(Directory directory) async {
+    try {
+      final testFile = File('${directory.path}/.test_write');
+      await testFile.writeAsString('test');
+      await testFile.delete();
+      return true;
+    } catch (e) {
+      AppLogger.error('Directory is not writable: ${directory.path}', e, StackTrace.current);
+      return false;
+    }
+  }
+
+  bool _isImageFile(String fileName) {
+    final ext = path.extension(fileName).toLowerCase();
+    return ext == '.jpg' || ext == '.jpeg' || ext == '.png' || ext == '.gif' || ext == '.bmp' || ext == '.webp';
+  }
+
+  bool _isVideoFile(String fileName) {
+    final ext = path.extension(fileName).toLowerCase();
+    return ext == '.mp4' || ext == '.mov' || ext == '.avi' || ext == '.wmv' || ext == '.mkv';
+  }
+
+  bool _isAudioFile(String fileName) {
+    final ext = path.extension(fileName).toLowerCase();
+    return ext == '.mp3' || ext == '.wav' || ext == '.m4a' || ext == '.ogg' || ext == '.aac';
+  }
+
+  Future<String?> getDownloadsPath() async {
+    if (!Platform.isWindows) return null;
+    try {
+      final downloadsDir = await getDownloadsDirectory();
+      if (downloadsDir != null) return downloadsDir.path;
+
+      final String? userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null) {
+        final winDownloadsPath = path.join(userProfile, 'Downloads');
+        if (await Directory(winDownloadsPath).exists()) {
+          return winDownloadsPath;
+        }
+      }
+    } catch (e, s) {
+      AppLogger.error("Error getting Windows Downloads path", e, s);
+    }
+    return null; 
   }
 
   @override
@@ -1316,7 +1271,6 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  // Отдельный метод для построения AppBar, который обновляется вместе с обновлениями чата
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: const Color(0xFF2A2A2A),
@@ -1324,12 +1278,10 @@ class _ChatScreenState extends State<ChatScreen> {
         stream: _chatStream,
         initialData: null,
         builder: (context, snapshot) {
-          // Сохраняем последнее известное состояние чата
           if (snapshot.hasData) {
             _currentChatEntity = snapshot.data;
           }
           
-          // Используем текущие данные чата или переданное имя
           final displayName = _currentChatEntity?.name ?? widget.chatName;
           
           return Text(

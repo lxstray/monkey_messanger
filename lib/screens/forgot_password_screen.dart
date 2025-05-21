@@ -104,7 +104,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     
                     const SizedBox(height: 32),
                     
-                    // Reset password form
                     Form(
                       key: _formKey,
                       child: Column(
